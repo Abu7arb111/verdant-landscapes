@@ -2613,3 +2613,84 @@ input:checked + .slider-switch:before {
   }
 }
 
+/* ==========================================================================
+   AI Capabilities Showcase Grid
+   ========================================================================== */
+.ai-features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 25px;
+  margin-top: 3rem;
+}
+
+.ai-feature-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: 30px 24px;
+  text-align: left;
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.ai-feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent-green), var(--accent-gold));
+  opacity: 0;
+  transition: var(--transition);
+}
+
+.ai-feature-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(82, 183, 136, 0.4);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.ai-feature-card:hover::before {
+  opacity: 1;
+}
+
+.ai-feature-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  background: rgba(82, 183, 136, 0.15);
+  color: var(--accent-green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.2rem;
+  transition: var(--transition);
+}
+
+.ai-feature-card:hover .ai-feature-icon {
+  background: var(--accent-green);
+  color: #0b0f0c;
+  transform: scale(1.08);
+}
+
+.ai-feature-icon svg {
+  width: 26px;
+  height: 26px;
+  fill: currentColor;
+}
+
+.ai-feature-card h3 {
+  font-size: 1.2rem;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+.ai-feature-card p {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
