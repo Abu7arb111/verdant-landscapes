@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Landscaping Virginia Beach - The premier landscaping, hardscaping, and garden design company in Virginia Beach, VA. Upload a photo of your yard for a free custom quote estimate.">
+  <meta name="keywords" content="landscaping Virginia Beach, VA landscaping, front yard makeovers, patios pavers, sod installation, drainage solutions, landscape lighting, fence installation, Virginia Beach landscaping quote">
+  <meta name="author" content="Landscaping Virginia Beach">
+  <title>Premium Landscaping & Hardscaping | Landscaping Virginia Beach</title>
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Floating Call Button -->
+  <a href="tel:+15402576053" class="floating-call" id="floating-call-btn" aria-label="Call Us Now">
+    <svg viewBox="0 0 24 24">
+      <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+    </svg>
+  </a>
+
+  <!-- Floating Chat Button -->
+  <button class="floating-chat-trigger" id="floating-chat-btn" aria-label="Open AI Assistant">
+    <svg viewBox="0 0 24 24">
+      <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/>
+    </svg>
+  </button>
+
+  <!-- AI Chat Assistant Panel -->
+  <div class="chat-bot-panel" id="chat-bot-window">
+    <div class="chat-header">
+      <div class="chat-agent-info">
+        <div class="chat-agent-avatar">
+          S
+          <span class="chat-agent-status-dot"></span>
+        </div>
+        <div class="chat-agent-meta">
+          <span class="chat-agent-name">Sandy</span>
+          <span class="chat-agent-status">AI Assistant • Online</span>
+        </div>
+      </div>
+      <button class="chat-close-btn" id="btn-chat-close" aria-label="Close Chat">
+        <svg viewBox="0 0 24 24">
+          <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Chat Messages Window -->
+    <div class="chat-messages-area" id="chat-messages-log">
+      <div class="chat-message bot">
+        <div class="chat-bubble">
+          Hi! I'm Sandy, your Virginia Beach landscaping assistant. 🌊 I can help you with estimates, service details, sod installation, drainage systems, or booking a free design consultation. How can I help you today?
+        </div>
+        <span class="chat-message-time" id="chat-message-time-start">1:42 PM</span>
+      </div>
+    </div>
+
+    <!-- Quick Prompt Chips -->
+    <div class="chat-chips-container" id="chat-quick-reply-chips">
+      <button class="chat-chip-btn" data-query="How do I get a photo estimate?">Photo Estimate?</button>
+      <button class="chat-chip-btn" data-query="What services do you offer?">What services?</button>
+      <button class="chat-chip-btn" data-query="Do you do drainage solutions?">Drainage options?</button>
+      <button class="chat-chip-btn" data-query="How do I book an appointment?">Book Appointment?</button>
+    </div>
+
+    <!-- Input Footer -->
+    <div class="chat-input-footer">
+      <input type="text" class="chat-input-field" id="chat-input-msg" placeholder="Type a message..." aria-label="Type message to AI assistant">
+      <button class="chat-send-btn" id="btn-chat-send" aria-label="Send Message">
+        <svg viewBox="0 0 24 24">
+          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Header Section -->
+  <header id="site-header">
+    <div class="container nav-wrapper">
+      <a href="#" class="logo" id="header-logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M17 8C15.62 8 14.42 8.78 13.8 9.96C13.58 9.4 13.11 9 12.51 9C11.9 9 11.4 9.42 11.2 10C10.5 8.83 9.27 8 7.85 8C5.72 8 4 9.72 4 11.85C4 16 12 21 12 21S20 16 20 11.85C20 9.72 18.28 8 17 8M12 18.5C9.72 16.34 6 13.1 6 11.85C6 10.83 6.83 10 7.85 10C8.92 10 9.93 11 10.45 11.75H11.55C12.07 11 13.08 10 14.15 10C15.17 10 16 10.83 16 11.85C16 13.1 12.28 16.34 12 18.5Z"/>
+          </svg>
+        </div>
+        Landscaping<span>Virginia Beach</span>
+      </a>
+      
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links" id="nav-menu">
+          <li><a href="#" class="active" id="nav-link-home">Home</a></li>
+          <li><a href="#services" id="nav-link-services">Services</a></li>
+          <li><a href="#portfolio" id="nav-link-portfolio">Portfolio</a></li>
+          <li><a href="#quote" id="nav-link-quote">Get Custom Estimate</a></li>
+          <li><a href="#appointments" id="nav-link-appointments">Book Appointment</a></li>
+          <li><a href="#testimonials" id="nav-link-testimonials">Reviews</a></li>
+          <li><a href="#contact" id="nav-link-contact">Contact</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-ctas">
+        <a href="tel:+15402576053" class="btn btn-phone" id="nav-call-btn">
+          <svg viewBox="0 0 24 24">
+            <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+          </svg>
+          (540) 257-6053
+        </a>
+        <a href="#quote" class="btn btn-primary" id="nav-quote-btn">Get Quote</a>
+      </div>
+
+      <button class="mobile-nav-toggle" id="menu-toggle-btn" aria-label="Toggle navigation menu" aria-expanded="false">
+        <svg viewBox="0 0 24 24">
+          <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+      <div class="container">
+        <div class="hero-content">
+          <div class="badge" id="hero-trust-badge">
+            <span class="badge-dot"></span>
+            #1 Rated Landscaping Company in Virginia Beach
+          </div>
+          <h1>
+            <span>Expert Landscaping,</span>
+            <span>Hardscaping & Design</span>
+            <span>in Virginia Beach</span>
+          </h1>
+          <p class="hero-desc">
+            From complete front yard makeovers to custom backyard renovations, patios, fences, sod, and smart lighting, we build your dream outdoor space.
+          </p>
+          <div class="hero-actions">
+            <a href="#quote" class="btn btn-primary" id="hero-quote-cta">Upload Yard Photo for Estimate</a>
+            <a href="#appointments" class="btn btn-secondary" id="hero-appoint-cta">Book Free Design Consultation</a>
+          </div>
+          <div class="hero-stats">
+            <div class="stat-item">
+              <span class="stat-num" id="stat-years">15+</span>
+              <span class="stat-label">Years Local Service</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-num" id="stat-projects">800+</span>
+              <span class="stat-label">Yards Transformed</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-num" id="stat-reviews">4.9★</span>
+              <span class="stat-label">Client Reviews</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Services Section -->
+    <section class="section" id="services">
+      <div class="bg-blur-1"></div>
+      <div class="container">
+        <h2 class="section-title">Our Landscaping <span>Services</span></h2>
+        <p class="section-subtitle">We handle projects of all scales, specializing in custom designs, stone works, planting programs, and yard construction.</p>
+        
+        <!-- Category 1: Design & Renovation -->
+        <h3 class="services-category-title">Core Landscaping & Hardscape</h3>
+        <div class="services-grid">
+          
+          <div class="service-card" id="service-card-design">
+            <div class="service-icon">
+              <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+            </div>
+            <h3>Landscape Design & Installation</h3>
+            <p>Bespoke landscape blueprints, 3D design mapping, and professional implementation from start to finish.</p>
+            <div class="service-price">Estimate via Yard Photo</div>
+          </div>
+          
+          <div class="service-card" id="service-card-front-makeover">
+            <div class="service-icon">
+              <svg viewBox="0 0 24 24"><path d="M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3zm0 4.88L17.5 12H15v6h-2v-6h-2v6H9v-6H6.5L12 7.88z"/></svg>
+            </div>
+            <h3>Front Yard Makeovers</h3>
+            <p>Elevate your curb appeal with customized pathways, flower beds, and premium garden installations.</p>
+            <div class="service-price">Estimate via Yard Photo</div>
+          </div>
+
+          <div class="service-card" id="service-card-back-renovation">
+            <div class="service-icon">
+              <svg viewBox="0 0 24 24"><path d="M12 2L2 22h20L12 2zm0 3.99L19.53 19H4.47L12 5.99z"/></svg>
+            </div>
+            <h3>Backyard Renovations</h3>
+            <p>Turn your backyard into a personal sanctuary with custom outdoor layouts, patios, and grading.</p>
+            <div class="service-price">Estimate via Yard Photo</div>
+          </div>
+
+          <div class="service-card" id="service-card-patios">
+            <div class="service-icon">
+              <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10H7v-2h10v2zm0-4H7V7h10v2zm0 8H7v-2h10v2z"/></svg>
+            </div>
+            <h3>Patios & Pavers</h3>
+            <p>Architectural stone, brick, and bluestone patios, walkways, driveways, and fire pit paving layouts.</p>
+            <div class="service-price">Estimate via Yard Photo</div>
+          </div>
+
+          <div class="service-card" id="service-card-pool">
+            <div class="service-icon">
+              <svg viewBox="0 0 24 24"><path d="M2 12c0 5.52 4.48 10 10 10s10-4.48 10-10S17.52 2 12 2 2 6.48 2 12zm18 0c0 4.41-3.59 8-8 8s-8-3.59-8-8 3.59-8 8-8 8 3.59 8 8zm-8-5v10l5-3-5-7z"/></svg>
+            </div>
+            <h3>Pool Landscaping</h3>
+            <p>Tropical and modern plantings, safety grading, and premium hardscapes surrounding your pool deck.</p>
+            <div class="service-price">Estimate via Yard Photo</div>
+          </div>
+
+          <div class="service-card" id="service-card-walls">
+            <div class="service-icon">
+              <svg viewBox="0 0 24 24"><path d="M19 4H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-2 10H7v-2h10v2zm0-4H7v-2h10v2zm0-4H7V8h10v2z"/></svg>
+            </div>
+            <h3>Retaining Walls</h3>
+            <p>Structural and decorative block, timber, and stone retaining walls to manage slopes and soils.</p>
+            <div class="service-price">Estimate via Yard Photo</div>
+          </div>
+
+          <div class="service-card" id="service-card-fence">
+            <div class="service-icon">
+              <svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2zm0-4H5V7h14v2zm0 8H5v-2h14v2z"/></svg>
+            </div>
+            <h3>Fence Installation</h3>
+            <p>Premium privacy wood fencing, modern vinyl designs, and custom security perimeter fences.</p>
+            <div class="service-price">Estimate via Yard Photo</div>
+          </div>
+        </div>
+
+        <!-- Category 2: Maintenance & Specialized Installations -->
+        <h3 class="services-category-title">Specialized Yard Services</h3>
+        <div class="services-grid">
+          
+          <div class="service-card" id="service-card-front-landscaping">
+            <div class="service-icon">
+              <svg viewBox="0 0 24 24"><path d="M12 2L1 21h22L12 2zm0 4l7.53 13H4.47L12 6z"/></svg>
+            </div>
+            <h3>Front Yard Landscaping</h3>
+            <p>Focused landscape styling, grading, lawn borders, and front yard structural layouts.</p>
+            <div class="service-price">Estimate via Yard Photo</div>
+          </div>
+
+          <div class="service-card" id="service-card-flowerbed">
+            <div class="service-icon">
+              <svg viewBox="0 0 24 24"><path d="M12 3C6.5 3 2 6.5 2 12c0 3.58 2.5 6.58 6 7.5v-2.13C5.5 16.5 4 14.48 4 12c0-4.41 3.59-8 8-8s8 3.59 8 8c0 2.48-1.5 4.5-4 5.37v2.13c3.5-.92 6-3.92 6-7.5 0-5.5-4.5-9-10-9z"/></svg>
+            </div>
+            <h3>Flower Bed Installation</h3>
+            <p>Custom garden border layouts, weed barrier fabrics, soil amendments, and planting.</p>
+            <div class="service-price">Estimate via Yard Photo</div>
+          </div>
+
+          <div class="service-card" id="service-card-shrubs">
+            <div class="service-icon">
+              <svg viewBox="0 0 24 24"><path d="M23 12l-2.44-2.79.34-3.69-3.61-.82-1.89-3.2L12 2.96 8.6 1.5 6.71 4.7 3.1 5.52l.34 3.69L1 12l2.44 2.79-.34 3.69 3.61.82 1.89 3.2 3.4-1.46 3.4 1.46 1.89-3.2 3.61-.82-.34-3.69L23 12zm-11 5c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></svg>
+            </div>
+            <h3>Shrub & Bush Planting</h3>
+            <p>Hedge screens, low-maintenance boxwoods, evergreen shrubs, and flowering bushes.</p>
+            <div class="service-price">Estimate via Yard Photo</div>
+          </div>
+
+          <div class="service-card" id="service-card-trees">
+            <div class="service-icon">
+              <svg viewBox="0 0 24 24"><path d="M12 2L4 12h3v8h10v-8h3L12 2z"/></svg>
+            </div>
+            <h3>Tree Planting</h3>
+            <p>Sourcing and installing healthy shade trees, maples, oaks, and privacy screening arborvitaes.</p>
+            <div class="service-price">Estimate via Yard Photo</div>
+          </div>
+
+          <div class="service-card" id="service-card-sod">
+            <div class="service-icon">
+              <svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0-9 9v1h18v-1a9 9 0 0 0-9-9zM3 16h18v2H3v-2zm0 4h18v2H3v-2z"/></svg>
+            </div>
+            <h3>Sod Installation</h3>
+            <p>Site grading, old grass removal, topsoil prep, and laying premium fresh turf rolls.</p>
+            <div class="service-price">Estimate via Yard Photo</div>
+          </div>
+
+          <div class="service-card" id="service-card-drainage">
+            <div class="service-icon">
+              <svg viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+            </div>
+            <h3>Drainage Solutions</h3>
+            <p>French drains, catch basins, surface grading, and channel drains to eliminate standing water.</p>
+            <div class="service-price">Estimate via Yard Photo</div>
+          </div>
+
+          <div class="service-card" id="service-card-mulch">
+            <div class="service-icon">
+              <svg viewBox="0 0 24 24"><path d="M12 22C6.48 22 2 17.52 2 12S6.48 2 12 2s10 4.48 10 10-4.48 10-10 10zm1-17.93c-3.95.49-7 3.85-7 7.93 0 .62.08 1.21.21 1.79L9 13v1c0 1.1.9 2 2 2v3.93zm6.9 2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V5h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+            </div>
+            <h3>Mulch & Rock Installation</h3>
+            <p>Black, red, and brown hardwood mulch, together with slate chips and river rock borders.</p>
+            <div class="service-price">Estimate via Yard Photo</div>
+          </div>
+
+          <div class="service-card" id="service-card-lighting">
+            <div class="service-icon">
+              <svg viewBox="0 0 24 24"><path d="M12 2.2c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19.4c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0l2.59-2.59c1.54 1.23 3.49 1.97 5.65 1.97 4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 16c-3.86 0-7-3.14-7-7s3.14-7 7-7 7 3.14 7 7-3.14 7-7 7z"/></svg>
+            </div>
+            <h3>Landscape Lighting</h3>
+            <p>Architectural uplighting for trees, path lighting, patio lighting, and smart timers.</p>
+            <div class="service-price">Estimate via Yard Photo</div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Portfolio Section -->
+    <section class="section" id="portfolio">
+      <div class="container">
+        <h2 class="section-title">Our Featured <span>Masterpieces</span></h2>
+        <p class="section-subtitle">Take a look at some of our recent residential yard construction and architectural landscaping projects in Virginia.</p>
+        
+        <div class="portfolio-filters">
+          <button class="filter-btn active" data-filter="all" id="btn-filter-all">All Projects</button>
+          <button class="filter-btn" data-filter="design" id="btn-filter-design">Design & Fences</button>
+          <button class="filter-btn" data-filter="hardscape" id="btn-filter-hardscape">Patios & Walls</button>
+          <button class="filter-btn" data-filter="gardens" id="btn-filter-gardens">Yards & Gardens</button>
+        </div>
+
+        <div class="portfolio-grid" id="portfolio-items">
+          <!-- Item 1 -->
+          <div class="portfolio-item" data-category="hardscape" id="portfolio-item-1">
+            <img src="assets/hero.png" alt="Luxurious modern backyard landscape design" class="portfolio-img">
+            <div class="portfolio-overlay">
+              <span class="portfolio-tag">Patios & Walls</span>
+              <h4>Virginia Beach Oceanfront</h4>
+              <p>Custom stone patio, structural fireplace, retaining walls, and architectural turf lawns.</p>
+            </div>
+          </div>
+
+          <!-- Item 2 -->
+          <div class="portfolio-item" data-category="hardscape" id="portfolio-item-2">
+            <img src="assets/hardscape.png" alt="Elegant stone patio with built-in fireplace" class="portfolio-img">
+            <div class="portfolio-overlay">
+              <span class="portfolio-tag">Hardscaping</span>
+              <h4>Chesapeake Stone Patio</h4>
+              <p>Granite slate pavers, custom wood pergola, and concrete gas fire pit.</p>
+            </div>
+          </div>
+
+          <!-- Item 3 -->
+          <div class="portfolio-item" data-category="gardens" id="portfolio-item-3">
+            <img src="assets/garden.png" alt="Lush flower beds and stepping stone pathway" class="portfolio-img">
+            <div class="portfolio-overlay">
+              <span class="portfolio-tag">Yards & Gardens</span>
+              <h4>Norfolk Front Yard Makeover</h4>
+              <p>Perennial planting scheme, sod installation, flagstone pathway, and lavender borders.</p>
+            </div>
+          </div>
+
+          <!-- Item 4 -->
+          <div class="portfolio-item" data-category="design" id="portfolio-item-4">
+            <img src="assets/lighting.png" alt="Ambient landscape lighting under tall trees" class="portfolio-img">
+            <div class="portfolio-overlay">
+              <span class="portfolio-tag">Design & Fences</span>
+              <h4>Great Neck Privacy Fence</h4>
+              <p>Premium cedar privacy fence, smart path lighting, and matching gate installation.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quote Calculator Section -->
+    <section class="section quote-section" id="quote">
+      <div class="bg-blur-2"></div>
+      <div class="container">
+        <h2 class="section-title">Instant <span>Photo Estimator</span></h2>
+        <p class="section-subtitle">Select services and upload a photo of your yard. We'll analyze your photo to provide a custom estimate.</p>
+        
+        <div class="quote-wrapper">
+          
+          <!-- Progress Bar -->
+          <div class="quote-progress" id="quote-progress-container">
+            <div class="progress-bar-fill" id="progress-bar-fill"></div>
+            <div class="progress-step active" data-step="1" data-title="Services" id="step-dot-1">1</div>
+            <div class="progress-step" data-step="2" data-title="Upload Photo" id="step-dot-2">2</div>
+            <div class="progress-step" data-step="3" data-title="Contact" id="step-dot-3">3</div>
+          </div>
+
+          <!-- Step 1: Multi-Select Service Checklist -->
+          <div class="wizard-step active" data-step="1" id="wizard-step-1">
+            <h3>Select the services you want (Multi-select)</h3>
+            <div class="checkbox-grid">
+              
+              <div class="checkbox-section-heading">Core Designs & Build</div>
+              
+              <div class="checkbox-card selected" data-value="design" data-base-price="3500" id="chk-service-design">
+                <div class="checkbox-custom">
+                  <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                </div>
+                <div class="checkbox-card-info">
+                  <h5>Landscape Design & Inst.</h5>
+                  <span>Blueprints & Planting Plans</span>
+                </div>
+              </div>
+
+              <div class="checkbox-card" data-value="front-makeover" data-base-price="6000" id="chk-service-front-makeover">
+                <div class="checkbox-custom">
+                  <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                </div>
+                <div class="checkbox-card-info">
+                  <h5>Front Yard Makeovers</h5>
+                  <span>Complete Redesigns</span>
+                </div>
+              </div>
+
+              <div class="checkbox-card" data-value="back-renovation" data-base-price="9000" id="chk-service-back-renovation">
+                <div class="checkbox-custom">
+                  <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                </div>
+                <div class="checkbox-card-info">
+                  <h5>Backyard Renovations</h5>
+                  <span>Sanctuaries & Fire Pits</span>
+                </div>
+              </div>
+
+              <div class="checkbox-card" data-value="pool" data-base-price="15000" id="chk-service-pool">
+                <div class="checkbox-custom">
+                  <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                </div>
+                <div class="checkbox-card-info">
+                  <h5>Pool Landscaping</h5>
+                  <span>Tropical Deck Borders</span>
+                </div>
+              </div>
+
+              <div class="checkbox-card" data-value="patios" data-base-price="12000" id="chk-service-patios">
+                <div class="checkbox-custom">
+                  <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                </div>
+                <div class="checkbox-card-info">
+                  <h5>Patios & Pavers</h5>
+                  <span>Slate & Granite Pavers</span>
+                </div>
+              </div>
+
+              <div class="checkbox-card" data-value="walls" data-base-price="8000" id="chk-service-walls">
+                <div class="checkbox-custom">
+                  <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                </div>
+                <div class="checkbox-card-info">
+                  <h5>Retaining Walls</h5>
+                  <span>Stone & Block Retaining</span>
+                </div>
+              </div>
+
+              <div class="checkbox-card" data-value="fence" data-base-price="4500" id="chk-service-fence">
+                <div class="checkbox-custom">
+                  <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                </div>
+                <div class="checkbox-card-info">
+                  <h5>Fence Installation</h5>
+                  <span>Wood, Vinyl & Metal Privacy</span>
+                </div>
+              </div>
+
+              <div class="checkbox-section-heading">Yard & Soil Installations</div>
+
+              <div class="checkbox-card" data-value="front-landscaping" data-base-price="4000" id="chk-service-front-landscaping">
+                <div class="checkbox-custom">
+                  <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                </div>
+                <div class="checkbox-card-info">
+                  <h5>Front Yard Landscaping</h5>
+                  <span>Gardens & Lawn Borders</span>
+                </div>
+              </div>
+
+              <div class="checkbox-card" data-value="flowerbed" data-base-price="1800" id="chk-service-flowerbed">
+                <div class="checkbox-custom">
+                  <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                </div>
+                <div class="checkbox-card-info">
+                  <h5>Flower Bed Installation</h5>
+                  <span>Mulch, Soil & Perennials</span>
+                </div>
+              </div>
+
+              <div class="checkbox-card" data-value="shrubs" data-base-price="1000" id="chk-service-shrubs">
+                <div class="checkbox-custom">
+                  <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                </div>
+                <div class="checkbox-card-info">
+                  <h5>Shrub & Bush Planting</h5>
+                  <span>Evergreens & Privacy Hedges</span>
+                </div>
+              </div>
+
+              <div class="checkbox-card" data-value="trees" data-base-price="1200" id="chk-service-trees">
+                <div class="checkbox-custom">
+                  <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                </div>
+                <div class="checkbox-card-info">
+                  <h5>Tree Planting</h5>
+                  <span>Mature Shade & Specimen Trees</span>
+                </div>
+              </div>
+
+              <div class="checkbox-card" data-value="sod" data-base-price="3000" id="chk-service-sod">
+                <div class="checkbox-custom">
+                  <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                </div>
+                <div class="checkbox-card-info">
+                  <h5>Sod Installation</h5>
+                  <span>Fresh Turf Prep & Laying</span>
+                </div>
+              </div>
+
+              <div class="checkbox-card" data-value="drainage" data-base-price="2500" id="chk-service-drainage">
+                <div class="checkbox-custom">
+                  <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                </div>
+                <div class="checkbox-card-info">
+                  <h5>Drainage Solutions</h5>
+                  <span>French Drains & Basins</span>
+                </div>
+              </div>
+
+              <div class="checkbox-card" data-value="mulch" data-base-price="1500" id="chk-service-mulch">
+                <div class="checkbox-custom">
+                  <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                </div>
+                <div class="checkbox-card-info">
+                  <h5>Mulch & Rock Inst.</h5>
+                  <span>River Rock & Bark Chips</span>
+                </div>
+              </div>
+
+              <div class="checkbox-card" data-value="lighting" data-base-price="2000" id="chk-service-lighting">
+                <div class="checkbox-custom">
+                  <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                </div>
+                <div class="checkbox-card-info">
+                  <h5>Landscape Lighting</h5>
+                  <span>Path Uplighting & Timers</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Step 2: Upload Photo of Yard -->
+          <div class="wizard-step" data-step="2" id="wizard-step-2">
+            <h3>Upload a photo of your yard / project space</h3>
+            <p style="text-align:center;color:var(--text-secondary);margin-bottom:2rem;font-size:0.95rem;">
+              Our horticulturalists and engineers will analyze the topography, grass health, and elements in your photo to calculate your estimate.
+            </p>
+            <div class="upload-zone" id="photo-upload-zone">
+              <svg class="upload-icon" viewBox="0 0 24 24">
+                <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+              </svg>
+              <div class="upload-text">
+                <h4 id="upload-status-text">Drag & drop your yard photo here</h4>
+                <p>or click to upload from your files / capture with camera</p>
+              </div>
+              <input type="file" id="yard-photo-input" class="upload-input-file" accept="image/*">
+            </div>
+            
+            <div class="preview-container" id="upload-preview-container">
+              <button type="button" class="remove-preview-btn" id="btn-remove-preview" aria-label="Remove photo">
+                <svg viewBox="0 0 24 24">
+                  <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                </svg>
+              </button>
+              <img src="" alt="Lawn preview" class="preview-image" id="uploaded-preview-img">
+            </div>
+          </div>
+
+          <!-- Step 3: Contact Form -->
+          <div class="wizard-step" data-step="3" id="wizard-step-3">
+            <h3>Enter details to receive your analysis</h3>
+            <div class="quote-form">
+              <form id="lead-form">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="lead-name">Your Full Name *</label>
+                    <input type="text" id="lead-name" class="form-control" placeholder="Johnathan Doe" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="lead-phone">Phone Number *</label>
+                    <input type="tel" id="lead-phone" class="form-control" placeholder="(540) 257-6053" required>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="lead-message">Additional Vision Notes (optional)</label>
+                  <textarea id="lead-message" class="form-control" placeholder="Tell us more about the dimensions or project context..."></textarea>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Footer Actions in Wizard -->
+          <div class="wizard-footer">
+            <div class="live-estimate">
+              <span class="estimate-label">Estimate Method</span>
+              <span class="estimate-price" id="live-estimate-price">Free Photo Analysis</span>
+            </div>
+            <div class="wizard-buttons">
+              <button class="btn btn-phone" id="btn-wizard-prev" style="display:none;">Back</button>
+              <button class="btn btn-primary" id="btn-wizard-next">Next Step</button>
+              <button class="btn btn-primary" id="btn-wizard-submit" style="display:none;">Submit for Analysis</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Appointment Scheduler Section -->
+    <section class="section" id="appointments">
+      <div class="container">
+        <h2 class="section-title">Schedule a <span>Design Consultation</span></h2>
+        <p class="section-subtitle">Select an available date and time slot to book a free, on-site project consultation with our landscape architect.</p>
+        
+        <div class="appointment-wrapper">
+          <!-- Calendar Selector -->
+          <div class="scheduler-calendar">
+            <div class="calendar-header">
+              <span class="calendar-title" id="month-title">June 2026</span>
+              <div style="display:flex;gap:10px;">
+                <button class="calendar-nav-btn" id="prev-month-btn" aria-label="Previous Month">
+                  <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+                </button>
+                <button class="calendar-nav-btn" id="next-month-btn" aria-label="Next Month">
+                  <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+                </button>
+              </div>
+            </div>
+            
+            <div class="calendar-grid" id="calendar-grid-cells">
+              <!-- Grid Header Labels -->
+              <span class="weekday-label">Su</span>
+              <span class="weekday-label">Mo</span>
+              <span class="weekday-label">Tu</span>
+              <span class="weekday-label">We</span>
+              <span class="weekday-label">Th</span>
+              <span class="weekday-label">Fr</span>
+              <span class="weekday-label">Sa</span>
+              
+              <!-- Days will be dynamically loaded by app.js -->
+            </div>
+          </div>
+
+          <!-- Time slot and booking form -->
+          <div class="scheduler-booking-box">
+            
+            <div class="scheduler-slots" id="slots-container" style="display:none;">
+              <span class="slots-title">Available Time Slots for <span id="selected-date-label">June 15, 2026</span></span>
+              <div class="slots-grid" id="time-slots-grid">
+                <!-- Dynamically populated time slots -->
+                <button class="slot-btn">9:00 AM</button>
+                <button class="slot-btn">11:00 AM</button>
+                <button class="slot-btn">1:30 PM</button>
+                <button class="slot-btn">4:00 PM</button>
+              </div>
+            </div>
+
+            <div class="scheduler-slots" id="no-date-selected-message">
+              <span class="slots-title">Select a Date</span>
+              <p style="color:var(--text-secondary);font-size:0.95rem;">Please select a date on the calendar to see available booking slots.</p>
+            </div>
+
+            <!-- Booking Input Form -->
+            <div class="appointment-form-box" id="appointment-form-box">
+              <div class="selected-booking-summary" id="booking-summary-text">
+                Selected: June 15, 2026 at 11:00 AM
+              </div>
+              <form id="appointment-submit-form">
+                <div class="form-group">
+                  <label for="appt-name">Your Full Name *</label>
+                  <input type="text" id="appt-name" class="form-control" placeholder="Jane Doe" required>
+                </div>
+                <div class="form-group">
+                  <label for="appt-phone">Phone Number *</label>
+                  <input type="tel" id="appt-phone" class="form-control" placeholder="(540) 257-6053" required>
+                </div>
+                <div class="form-group">
+                  <label for="appt-service">Service of Interest *</label>
+                  <select id="appt-service" class="form-control" required style="background-color:#121614;color:#fff;">
+                    <option value="" disabled selected>Select a service...</option>
+                    <option value="Front Yard Makeover">Front Yard Makeover</option>
+                    <option value="Backyard Renovation">Backyard Renovation</option>
+                    <option value="Patio & Pavers">Patio & Pavers Installation</option>
+                    <option value="Pool Landscaping">Pool Landscaping</option>
+                    <option value="Sod & Grading">Sod & Grading Solutions</option>
+                    <option value="Lighting & Irrigation">Landscape Lighting / Drainage</option>
+                  </select>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%;margin-top:10px;" id="btn-appt-submit">Confirm Booking Appointment</button>
+              </form>
+            </div>
+
+            <!-- Booking success notification -->
+            <div class="booking-success-card" id="booking-success-card" style="display:none;">
+              <div class="booking-success-icon">
+                <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+              </div>
+              <h4>Appointment Confirmed!</h4>
+              <p>Your on-site consultation is secured. We will contact you at your provided phone number to coordinate project files.</p>
+              <div class="selected-booking-summary" id="success-appt-details" style="border-style:solid;color:var(--text-primary);background:rgba(0,0,0,0.15);">
+                June 15, 2026 at 11:00 AM
+              </div>
+              <p style="font-size:0.8rem;color:var(--text-secondary);margin-top:10px;">Booking Ref: <span class="booking-ref-number" id="success-appt-ref">#APT-4819</span></p>
+              <button type="button" class="btn btn-secondary" style="width:100%;margin-top:15px;" id="btn-book-another">Book Another Appointment</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="section" id="testimonials">
+      <div class="container">
+        <h2 class="section-title">What Virginia Beach <span>Clients Say</span></h2>
+        <p class="section-subtitle">Read reviews from real property owners in Virginia Beach, Chesapeake, and Norfolk who transformed their yards.</p>
+        
+        <div class="testimonials-grid">
+          <!-- Testimonial 1 -->
+          <div class="testimonial-card" id="testimonial-card-1">
+            <div class="stars">
+              <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+            </div>
+            <p class="testimonial-text">
+              "We hired Landscaping Virginia Beach for a complete front yard makeover (new sod, flower beds, lighting). Our house has the best curb appeal in Great Neck now! The photo upload option was so convenient, and scheduling the designer online took under two minutes."
+            </p>
+            <div class="testimonial-user">
+              <div class="user-avatar">TK</div>
+              <div class="user-details">
+                <h4>Thomas Kincaid</h4>
+                <span>Great Neck, VB Homeowner</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Testimonial 2 -->
+          <div class="testimonial-card" id="testimonial-card-2">
+            <div class="stars">
+              <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+            </div>
+            <p class="testimonial-text">
+              "We had terrible drainage in our backyard after heavy rains. They came out, installed a French drain system, laid beautiful sod, and built a custom slate patio. Highly professional crew, highly recommend!"
+            </p>
+            <div class="testimonial-user">
+              <div class="user-avatar">MP</div>
+              <div class="user-details">
+                <h4>Megan Porter</h4>
+                <span>Chesapeake, VA Resident</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Testimonial 3 -->
+          <div class="testimonial-card" id="testimonial-card-3">
+            <div class="stars">
+              <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+            </div>
+            <p class="testimonial-text">
+              "We renovated our pool landscaping and added custom retaining walls and uplighting. The yard looks like a five-star resort at night. Incredible craftsmanship and very fair pricing."
+            </p>
+            <div class="testimonial-user">
+              <div class="user-avatar">DR</div>
+              <div class="user-details">
+                <h4>Danielle Rossi</h4>
+                <span>Virginia Beach Resident</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Call / Contact Section -->
+    <section class="section" id="contact">
+      <div class="container">
+        <div class="cta-banner">
+          <h2>Ready to transform your landscape?</h2>
+          <p>Get a direct, free phone consultation with our lead landscape architect today. We'll answer all your design and scheduling questions.</p>
+          <div class="phone-action">
+            <a href="tel:+15402576053" class="phone-link" id="direct-call-link">
+              <svg viewBox="0 0 24 24">
+                <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+              </svg>
+              (540) 257-6053
+            </a>
+            <span class="phone-subtitle">Call Toll-Free • Active Mon-Sat 8AM - 6PM</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer Section -->
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a href="#" class="logo" id="footer-logo">
+            <div class="logo-icon">
+              <svg viewBox="0 0 24 24">
+                <path d="M17 8C15.62 8 14.42 8.78 13.8 9.96C13.58 9.4 13.11 9 12.51 9C11.9 9 11.4 9.42 11.2 10C10.5 8.83 9.27 8 7.85 8C5.72 8 4 9.72 4 11.85C4 16 12 21 12 21S20 16 20 11.85C20 9.72 18.28 8 17 8M12 18.5C9.72 16.34 6 13.1 6 11.85C6 10.83 6.83 10 7.85 10C8.92 10 9.93 11 10.45 11.75H11.55C12.07 11 13.08 10 14.15 10C15.17 10 16 10.83 16 11.85C16 13.1 12.28 16.34 12 18.5Z"/>
+              </svg>
+            </div>
+            Landscaping<span>Virginia Beach</span>
+          </a>
+          <p>Virginia Beach's leading residential landscape design-build firm. We design beautiful front yard makeovers, patios, pool landscapes, fences, and drainage solutions.</p>
+          <div class="footer-socials">
+            <a href="#" class="social-icon" aria-label="Facebook">
+              <svg viewBox="0 0 24 24"><path d="M18.77 7.46H14.5v-1.9c0-.9.6-1.1 1-1.1h3V1H14.17C10.24 1 8.5 3.37 8.5 6.47v2.4H5.88v4H8.5v10.13h6V12.87h3.4l.5-4.01z"/></svg>
+            </a>
+            <a href="#" class="social-icon" aria-label="Instagram">
+              <svg viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.051.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+            </a>
+            <a href="#" class="social-icon" aria-label="YouTube">
+              <svg viewBox="0 0 24 24"><path d="M23.498 6.163a3.003 3.003 0 00-2.11-2.11C19.517 3.545 12 3.545 12 3.545s-7.516 0-9.387.507A3.003 3.003 0 00.502 6.163C0 8.07 0 12 0 12s0 3.93.502 5.837a3.003 3.003 0 002.11 2.11c1.871.507 9.386.507 9.386.507s7.517 0 9.387-.507a3.003 3.003 0 002.11-2.11C24 15.93 24 12 24 12s0-3.93-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+            </a>
+          </div>
+        </div>
+
+        <div class="footer-col">
+          <h4>Our Services</h4>
+          <ul class="footer-links">
+            <li><a href="#services">Front Yard Makeovers</a></li>
+            <li><a href="#services">Patios & Stone Pavers</a></li>
+            <li><a href="#services">Pool Landscaping</a></li>
+            <li><a href="#services">Sod & Grading</a></li>
+            <li><a href="#services">French Drainage Solutions</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Navigation</h4>
+          <ul class="footer-links">
+            <li><a href="#">Home</a></li>
+            <li><a href="#services">Services</a></li>
+            <li><a href="#portfolio">Featured Projects</a></li>
+            <li><a href="#quote">Quote Estimator</a></li>
+            <li><a href="#appointments">Book Appointment</a></li>
+          </ul>
+          
+          <!-- Payment Badges in Footer -->
+          <div class="payment-badges-container">
+            <span class="payment-badges-title">Payments Accepted</span>
+            <div class="payment-badges-row">
+              <span class="payment-badge" title="Visa">
+                <svg viewBox="0 0 24 24" style="width:24px;"><path d="M10 6h2l2.5 7h1.5l2-7h2v9h-2v-4.5L16 15h-2l-2-4.5V15h-2z" style="display:none;"/><text x="2" y="18" font-family="'Outfit', sans-serif" font-weight="800" font-size="16" fill="currentColor">VISA</text></span
+              >
+              <span class="payment-badge" title="Mastercard">
+                <svg viewBox="0 0 24 24" style="width:36px;height:16px;"><circle cx="10" cy="8" r="6" fill="#eb001b" opacity="0.85"/><circle cx="20" cy="8" r="6" fill="#ff5f00" opacity="0.85"/></svg>
+              </span
+              >
+              <span class="payment-badge" title="American Express">
+                <text x="0" y="16" font-family="'Outfit', sans-serif" font-weight="800" font-size="12" fill="currentColor">AMEX</text>
+              </span
+              >
+              <span class="payment-badge" title="Apple Pay">
+                <text x="0" y="16" font-family="'Outfit', sans-serif" font-weight="700" font-size="12" fill="currentColor"> Pay</text>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>&copy; 2026 Landscaping Virginia Beach. All rights reserved.</p>
+        <div class="footer-legal-links">
+          <a href="#">Privacy Policy</a>
+          <a href="#">Terms of Service</a>
+          <a href="#">VA Class A License & Bond</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Custom Lead Confirmation Modal -->
+  <div class="modal-overlay" id="quote-success-modal">
+    <div class="modal-content">
+      <div class="modal-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+        </svg>
+      </div>
+      <h3>Photo Uploaded Successfully!</h3>
+      <p>We have received your yard photo. Our Virginia Beach design specialists are analyzing it and will call you with a custom estimate.</p>
+      
+      <div class="quote-details-summary">
+        <div class="summary-row">
+          <span class="summary-label">Reference ID</span>
+          <span class="summary-val" id="summary-ref-id">#LVB-4819</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">Selected Services</span>
+          <span class="summary-val" id="summary-service">Landscape Design & Installation</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">Uploaded File</span>
+          <span class="summary-val" id="summary-photo-name">yard_preview.png</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">Analysis Status</span>
+          <span class="summary-val gold" style="color:var(--accent-green);">Analyzing Photo...</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">Consultation Phone</span>
+          <span class="summary-val" id="summary-phone">(540) 257-6053</span>
+        </div>
+      </div>
+
+      <a href="tel:+15402576053" class="btn btn-primary" style="width:100%;margin-bottom:12px;" id="modal-call-btn">
+        <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor;margin-right:8px;">
+          <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+        </svg>
+        Call to Speak Now
+      </a>
+      <button class="btn btn-secondary" style="width:100%;" id="btn-modal-close">Close window</button>
+    </div>
+  </div>
+
+  <!-- JavaScript Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
