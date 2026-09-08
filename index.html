@@ -92,7 +92,11 @@
         <ul class="nav-links" id="nav-menu">
           <li><a href="#" class="active" id="nav-link-home">Home</a></li>
           <li><a href="#services" id="nav-link-services">Services</a></li>
+          <li><a href="#before-after" id="nav-link-before-after">Before & After</a></li>
+          <li><a href="#pricing" id="nav-link-pricing">Pricing</a></li>
           <li><a href="#portfolio" id="nav-link-portfolio">Portfolio</a></li>
+          <li><a href="#about" id="nav-link-about">About Us</a></li>
+          <li><a href="#faq" id="nav-link-faq">FAQ</a></li>
           <li><a href="#quote" id="nav-link-quote">Get Custom Estimate</a></li>
           <li><a href="#appointments" id="nav-link-appointments">Book Appointment</a></li>
           <li><a href="#testimonials" id="nav-link-testimonials">Reviews</a></li>
@@ -366,6 +370,108 @@
               <p>Premium cedar privacy fence, smart path lighting, and matching gate installation.</p>
             </div>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Before & After Transformation Section -->
+    <section class="section" id="before-after">
+      <div class="container">
+        <h2 class="section-title">Visual <span>Transformations</span></h2>
+        <p class="section-subtitle">Drag the slider to compare original yards with our completed master-grade landscaping renovations.</p>
+        
+        <div class="ba-slider-wrapper">
+          <div class="ba-slider-container" id="ba-comparison-slider">
+            <!-- After Image (Background) -->
+            <img src="assets/hero.png" alt="After Landscaping Transformation" class="ba-img ba-after-img">
+            <div class="ba-badge ba-badge-after">AFTER</div>
+            
+            <!-- Before Image (Clipped Overlay) -->
+            <div class="ba-before-layer" id="ba-before-layer">
+              <img src="assets/garden.png" alt="Before Landscaping Transformation" class="ba-img ba-before-img">
+              <div class="ba-badge ba-badge-before">BEFORE</div>
+            </div>
+            
+            <!-- Slider Handle Bar -->
+            <div class="ba-handle" id="ba-slider-handle">
+              <div class="ba-handle-line"></div>
+              <div class="ba-handle-button">
+                <svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
+                <svg viewBox="0 0 24 24" style="transform:rotate(180deg);"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
+              </div>
+              <div class="ba-handle-line"></div>
+            </div>
+          </div>
+          <div class="ba-caption">
+            <h4>Virginia Beach Oceanfront Residence</h4>
+            <p>Complete overhaul: Replaced patchy weeds and overgrown shrubs with architectural slate pavers, lush sod, custom fire pit, and ambient tree uplighting.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pricing Packages Section -->
+    <section class="section pricing-section" id="pricing">
+      <div class="container">
+        <h2 class="section-title">Transparent <span>Service Packages</span></h2>
+        <p class="section-subtitle">No hidden fees. Upfront, estimate-backed pricing tailored for homeowners in Virginia Beach & surrounding areas.</p>
+        
+        <div class="pricing-grid">
+          
+          <!-- Package 1 -->
+          <div class="pricing-card" id="pricing-card-basic">
+            <div class="pricing-header">
+              <span class="pricing-tier-tag">Lawn & Garden</span>
+              <h3>Essential Care</h3>
+              <div class="pricing-amount">From <span>$1,499</span></div>
+              <p>Ideal for garden refreshes, sod replacement, and front yard flowerbed updates.</p>
+            </div>
+            <ul class="pricing-features">
+              <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg> Custom Flower Bed & Edging</li>
+              <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg> Premium Bermuda or Tall Fescue Sod</li>
+              <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg> Mulch & Soil Conditioning</li>
+              <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg> Initial 30-Day Plant Care Warranty</li>
+            </ul>
+            <a href="#quote" class="btn btn-secondary select-package-btn" data-package="Essential Care ($1,499+)">Get Estimate for This Tier</a>
+          </div>
+
+          <!-- Package 2 (Highlighted / Popular) -->
+          <div class="pricing-card popular" id="pricing-card-popular">
+            <div class="popular-ribbon">MOST POPULAR</div>
+            <div class="pricing-header">
+              <span class="pricing-tier-tag">Complete Overhaul</span>
+              <h3>Full Yard Transformation</h3>
+              <div class="pricing-amount">From <span>$4,999</span></div>
+              <p>Complete front or backyard design with stone paver patio, sod, and smart lighting.</p>
+            </div>
+            <ul class="pricing-features">
+              <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg> 3D Architectural Landscape Blueprint</li>
+              <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg> Up to 350 sq ft Stone Paver Patio</li>
+              <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg> Smart Low-Voltage LED Path Lighting</li>
+              <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg> French Drain & Runoff Slope Grading</li>
+              <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg> 1-Year Craftsmanship Guarantee</li>
+            </ul>
+            <a href="#quote" class="btn btn-primary select-package-btn" data-package="Full Transformation ($4,999+)">Select Popular Package</a>
+          </div>
+
+          <!-- Package 3 -->
+          <div class="pricing-card" id="pricing-card-luxury">
+            <div class="pricing-header">
+              <span class="pricing-tier-tag">Resort Grade</span>
+              <h3>Executive Hardscape</h3>
+              <div class="pricing-amount">From <span>$9,999</span></div>
+              <p>For large properties, pool decks, retaining walls, fire features, and custom structures.</p>
+            </div>
+            <ul class="pricing-features">
+              <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg> Custom Outdoor Kitchen or Gas Fire Pit</li>
+              <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg> Structural Stone Retaining & Seating Walls</li>
+              <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg> Pool Deck Surrounds & Cedar Fencing</li>
+              <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg> Full Architectural Lighting Integration</li>
+              <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg> Lifetime Structural Paver Warranty</li>
+            </ul>
+            <a href="#quote" class="btn btn-secondary select-package-btn" data-package="Executive Hardscape ($9,999+)">Get Estimate for This Tier</a>
+          </div>
+
         </div>
       </div>
     </section>
@@ -788,6 +894,120 @@
               </div>
             </div>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- About Us & Team Section -->
+    <section class="section about-section" id="about">
+      <div class="container">
+        <h2 class="section-title">About <span>Verdant Landscapes</span></h2>
+        <p class="section-subtitle">Over 15 years of dedicated craftsmanship, transforming Virginia Beach yards into award-winning outdoor living spaces.</p>
+        
+        <div class="about-grid">
+          <div class="about-content">
+            <h3>Crafting Masterpiece Landscapes Since 2011</h3>
+            <p>Founded with a passion for sustainable horticulture and architectural stone design, Verdant Landscapes has become Virginia Beach's premier design-build landscaping company. We specialize in turning challenging yard grading, poor drainage, and plain lawns into resort-style outdoor retreats.</p>
+            
+            <div class="about-highlights">
+              <div class="highlight-box">
+                <span class="highlight-num">Class A</span>
+                <span class="highlight-label">Licensed & Insured</span>
+              </div>
+              <div class="highlight-box">
+                <span class="highlight-num">100%</span>
+                <span class="highlight-label">Satisfaction Guarantee</span>
+              </div>
+              <div class="highlight-box">
+                <span class="highlight-num">ICPI</span>
+                <span class="highlight-label">Certified Paver Installers</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="team-cards">
+            <!-- Team Member 1 -->
+            <div class="team-card" id="team-member-1">
+              <div class="team-avatar">MH</div>
+              <div class="team-info">
+                <h4>Marcus Holloway</h4>
+                <span class="team-role">Founder & Lead Landscape Architect</span>
+                <p>18+ years in hardscaping, turf management, and custom pool surrounds.</p>
+              </div>
+            </div>
+
+            <!-- Team Member 2 -->
+            <div class="team-card" id="team-member-2">
+              <div class="team-avatar">SK</div>
+              <div class="team-info">
+                <h4>Sarah Kensington</h4>
+                <span class="team-role">Master Horticultural Specialist</span>
+                <p>Expert in native Virginia coastal plants, flowerbed design, and sod selection.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ Accordion Section -->
+    <section class="section faq-section" id="faq">
+      <div class="container">
+        <h2 class="section-title">Frequently Asked <span>Questions</span></h2>
+        <p class="section-subtitle">Everything you need to know about our photo estimates, project timelines, warranties, and service areas.</p>
+        
+        <div class="faq-accordion" id="faq-accordion">
+          
+          <div class="faq-item" id="faq-item-1">
+            <button class="faq-question" aria-expanded="false">
+              <span>How does the photo estimate tool work?</span>
+              <svg viewBox="0 0 24 24" class="faq-icon"><path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"/></svg>
+            </button>
+            <div class="faq-answer">
+              <p>Simply select your desired services, take a photo of your front or backyard on your phone, and upload it through our Instant Photo Estimator tool. Our team analyzes your yard square footage, slope, and existing vegetation to send you a customized estimate within 24 hours!</p>
+            </div>
+          </div>
+
+          <div class="faq-item" id="faq-item-2">
+            <button class="faq-question" aria-expanded="false">
+              <span>What areas in Hampton Roads do you serve?</span>
+              <svg viewBox="0 0 24 24" class="faq-icon"><path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"/></svg>
+            </button>
+            <div class="faq-answer">
+              <p>We serve all of Virginia Beach (Oceanfront, Great Neck, Red Mill, Town Center, Kempsville), Chesapeake, Norfolk, Portsmouth, and Suffolk.</p>
+            </div>
+          </div>
+
+          <div class="faq-item" id="faq-item-3">
+            <button class="faq-question" aria-expanded="false">
+              <span>How long does a typical paver patio or hardscape installation take?</span>
+              <svg viewBox="0 0 24 24" class="faq-icon"><path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"/></svg>
+            </button>
+            <div class="faq-answer">
+              <p>Most standard paver patios (200-500 sq ft) are completed within 3 to 5 business days. Full yard transformations involving retaining walls, drainage systems, and sod take approximately 1 to 2 weeks.</p>
+            </div>
+          </div>
+
+          <div class="faq-item" id="faq-item-4">
+            <button class="faq-question" aria-expanded="false">
+              <span>Do you offer warranties on sod, plants, and hardscape structures?</span>
+              <svg viewBox="0 0 24 24" class="faq-icon"><path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"/></svg>
+            </button>
+            <div class="faq-answer">
+              <p>Yes! We offer a 1-Year Workmanship Warranty on all hardscape paver installations and retaining walls, as well as a 30-Day Health Guarantee on all installed sod, trees, and perennial plantings.</p>
+            </div>
+          </div>
+
+          <div class="faq-item" id="faq-item-5">
+            <button class="faq-question" aria-expanded="false">
+              <span>Can you fix standing water and drainage issues in my backyard?</span>
+              <svg viewBox="0 0 24 24" class="faq-icon"><path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"/></svg>
+            </button>
+            <div class="faq-answer">
+              <p>Absolutely. We specialize in French drains, catch basins, downspout extensions, and lawn re-grading to permanently divert water away from your foundation and end soggy lawns.</p>
+            </div>
+          </div>
+
         </div>
       </div>
     </section>

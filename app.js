@@ -587,6 +587,22 @@ document.addEventListener('DOMContentLoaded', () => {
   function getBotResponse(userMsg) {
     const query = userMsg.toLowerCase().trim();
 
+    if (query.includes('pricing') || query.includes('package') || query.includes('tier') || query.includes('how much')) {
+      return `We offer 3 transparent, upfront service packages:<br><br><strong>1. Essential Care ($1,499+):</strong> Lawn edging, Bermuda/Tall Fescue sod, flowerbeds & mulch.<br><strong>2. Full Transformation ($4,999+):</strong> [Most Popular] 3D design blueprint, 350 sq ft paver patio, path lighting & French drain.<br><strong>3. Executive Hardscape ($9,999+):</strong> Outdoor kitchen or fire pit, retaining walls, pool decks & cedar privacy fencing.<br><br>Check out our <strong>Pricing Packages</strong> section on the homepage for full details!`;
+    }
+
+    if (query.includes('before') || query.includes('after') || query.includes('transform') || query.includes('gallery')) {
+      return `Check out our interactive **Visual Transformations** section! You can drag the interactive slider left and right to see real Virginia Beach homes before and after our hardscape and landscaping upgrades!`;
+    }
+
+    if (query.includes('team') || query.includes('about') || query.includes('who are you') || query.includes('owner')) {
+      return `Verdant Landscapes was founded in 2011 by <strong>Marcus Holloway</strong> (Lead Landscape Architect) and <strong>Sarah Kensington</strong> (Master Horticultural Specialist). We are a Virginia Class A Licensed & Insured contractor with over 15 years of service in Hampton Roads!`;
+    }
+
+    if (query.includes('warranty') || query.includes('guarantee') || query.includes('licensed')) {
+      return `We stand behind our work 100%! We provide:<br>• <strong>1-Year Workmanship Warranty</strong> on all patios, pavers, and retaining walls.<br>• <strong>30-Day Health Guarantee</strong> on all new sod, trees, and plantings.<br>• We are a fully **Virginia Class A Licensed & Insured** contractor.`;
+    }
+
     if (query.includes('estimate') || query.includes('quote') || query.includes('photo') || query.includes('cost') || query.includes('price')) {
       return `To get a custom estimate for your project:<br><br>1. Scroll to the <strong>Instant Photo Estimator</strong> section on the homepage.<br>2. Select all the services you are interested in (multi-select).<br>3. Upload or drag-and-drop a photo of your lawn or yard in Step 2.<br>4. Enter your contact details in Step 3.<br><br>Our team will analyze your yard conditions and call you at <strong>(540) 257-6053</strong> to coordinate details!`;
     }
@@ -666,4 +682,97 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // ==========================================
+  // 7. Before & After Drag Comparison Slider
+  // ==========================================
+  const baContainer = document.getElementById('ba-comparison-slider');
+  const baBeforeLayer = document.getElementById('ba-before-layer');
+  const baHandle = document.getElementById('ba-slider-handle');
+
+  if (baContainer && baBeforeLayer && baHandle) {
+    let isDraggingBA = false;
+
+    function setSliderPosition(xPos) {
+      const rect = baContainer.getBoundingClientRect();
+      let offsetX = xPos - rect.left;
+      if (offsetX < 0) offsetX = 0;
+      if (offsetX > rect.width) offsetX = rect.width;
+
+      const percentage = (offsetX / rect.width) * 100;
+      baBeforeLayer.style.width = `${percentage}%`;
+      baHandle.style.left = `${percentage}%`;
+    }
+
+    baContainer.addEventListener('mousedown', (e) => {
+      isDraggingBA = true;
+      setSliderPosition(e.clientX);
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDraggingBA) return;
+      setSliderPosition(e.clientX);
+    });
+
+    window.addEventListener('mouseup', () => {
+      isDraggingBA = false;
+    });
+
+    baContainer.addEventListener('touchstart', (e) => {
+      isDraggingBA = true;
+      if (e.touches.length > 0) {
+        setSliderPosition(e.touches[0].clientX);
+      }
+    });
+
+    window.addEventListener('touchmove', (e) => {
+      if (!isDraggingBA) return;
+      if (e.touches.length > 0) {
+        setSliderPosition(e.touches[0].clientX);
+      }
+    });
+
+    window.addEventListener('touchend', () => {
+      isDraggingBA = false;
+    });
+  }
+
+  // ==========================================
+  // 8. FAQ Accordion Interactivity
+  // ==========================================
+  const faqItems = document.querySelectorAll('.faq-item');
+  faqItems.forEach((item) => {
+    const questionBtn = item.querySelector('.faq-question');
+    if (questionBtn) {
+      questionBtn.addEventListener('click', () => {
+        const isActive = item.classList.contains('active');
+        faqItems.forEach((other) => {
+          other.classList.remove('active');
+          const otherBtn = other.querySelector('.faq-question');
+          if (otherBtn) otherBtn.setAttribute('aria-expanded', 'false');
+        });
+        if (!isActive) {
+          item.classList.add('active');
+          questionBtn.setAttribute('aria-expanded', 'true');
+        }
+      });
+    }
+  });
+
+  // ==========================================
+  // 9. Pricing Package Buttons Interactivity
+  // ==========================================
+  const selectPackageBtns = document.querySelectorAll('.select-package-btn');
+  selectPackageBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const pkgName = btn.getAttribute('data-package');
+      if (pkgName) {
+        if (chatWindow && !chatWindow.classList.contains('active')) {
+          chatWindow.classList.add('active');
+        }
+        processUserMessage(`I'm interested in the ${pkgName} package!`);
+      }
+    });
+  });
+
 });
+
