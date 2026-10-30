@@ -84,6 +84,35 @@ verdant-landscapes/
 
 ---
 
+## 🎓 CS 4604: Database Systems — Phase 2 Deliverables
+
+### 👥 Group 6 Team Members & Contributions
+- **Zachary Brosius** (`ztbrosuis@vt.edu`) — Database Architect & Integrity Engineer
+  - Configured MariaDB relational schema constraints and foreign key actions (`ON DELETE CASCADE`, `ON UPDATE CASCADE`).
+  - Validated sample data population with at least 20 tuples across all 12 relational tables.
+  - Designed SQL mutation statements ensuring ACID transaction safety during concurrent GUI modifications.
+- **Saveer Pande** (`spande@vt.edu`) — Backend & Database Integration Lead
+  - Established database connection handler via PHP PDO / MySQLi to `landscapingtool.discovery.cs.vt.edu:3306`.
+  - Built backend HTTP POST endpoints for `INSERT INTO CUSTOMER` and `DELETE FROM CUSTOMER`.
+  - Handled database error codes, constraint violation checks, and live query execution logging.
+- **Benny He** (`bennyhe163@vt.edu`) — Frontend UI/UX & Interaction Developer
+  - Developed the GUI Management Portal layout, navigation, and live table views.
+  - Created interactive modal dialogs for tuple entry with input validation (regex formatting for phone, email, and numeric types).
+  - Built the delete confirmation dialogs and dynamic SQL reflection log interface.
+- **Ahmad Abu Harb** (`ahmad@vt.edu`) — Full-Stack Integration & Documentation Lead
+  - Coordinated end-to-end integration linking GUI triggers directly to database queries.
+  - Tested and validated Insert and Delete operations, ensuring immediate two-way reflection between UI and database tables.
+  - Compiled the technical verification report, captured visual proof screenshots, and packaged deliverables.
+
+### 📁 Phase 2 Directory Structure (`Phase_2/`)
+- `CS4604_Group6_Phase2_Report.pdf`: Complete submission report with team member roles, code listings, and all 8 embedded verification screenshots.
+- `sql/landscaping_phase2_schema_and_data.sql`: Complete DDL for all 12 tables + ready sample data with **20+ tuples** per major table.
+- `php/`: Production PHP portal files for Apache / Discovery cluster (`landscapingtool.discovery.cs.vt.edu`).
+- `screenshots/`: 8 high-resolution screenshots capturing GUI Insert/Delete operations and MariaDB query reflections.
+- `app/`: Zero-dependency Python 3 runner (`server.py`) and pre-populated database (`landscaping.db`) for immediate local testing.
+
+---
+
 ## 👥 Team & Credits
 
 - **Marcus Holloway** — Founder & Lead Landscape Architect

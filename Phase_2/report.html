@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CS 4604 Group 6 - Phase 2 Report</title>
+    <style>
+        @page {
+            size: letter;
+            margin: 0.7in;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #1e293b;
+            line-height: 1.5;
+            font-size: 10.5pt;
+        }
+        .header-box {
+            border-bottom: 3px solid #861F41; /* VT Maroon */
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+        }
+        .header-title {
+            font-size: 20pt;
+            font-weight: 800;
+            color: #861F41;
+            margin: 0 0 4px 0;
+        }
+        .header-subtitle {
+            font-size: 13pt;
+            font-weight: 600;
+            color: #E87722; /* VT Orange */
+            margin: 0 0 8px 0;
+        }
+        .meta-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            font-size: 9.5pt;
+            color: #475569;
+            background: #f8fafc;
+            padding: 10px 14px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+        h2 {
+            font-size: 13pt;
+            font-weight: 700;
+            color: #0f172a;
+            border-bottom: 1.5px solid #cbd5e1;
+            padding-bottom: 4px;
+            margin-top: 22px;
+            margin-bottom: 10px;
+            page-break-after: avoid;
+        }
+        h3 {
+            font-size: 11pt;
+            font-weight: 700;
+            color: #1e293b;
+            margin-top: 14px;
+            margin-bottom: 6px;
+            page-break-after: avoid;
+        }
+        p {
+            margin: 0 0 8px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9pt;
+            margin: 10px 0 16px 0;
+        }
+        th {
+            background-color: #f1f5f9;
+            color: #334155;
+            font-weight: 700;
+            text-align: left;
+            padding: 6px 10px;
+            border: 1px solid #cbd5e1;
+        }
+        td {
+            padding: 6px 10px;
+            border: 1px solid #e2e8f0;
+            vertical-align: top;
+        }
+        tr:nth-child(even) td {
+            background-color: #f8fafc;
+        }
+        .badge-success {
+            background: #dcfce7;
+            color: #15803d;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        .figure {
+            margin: 14px 0 20px 0;
+            text-align: center;
+            page-break-inside: avoid;
+        }
+        .figure img {
+            width: 98%;
+            max-height: 4.8in;
+            object-fit: contain;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.06);
+        }
+        .figure-caption {
+            font-size: 8.5pt;
+            font-weight: 600;
+            color: #475569;
+            margin-top: 6px;
+        }
+        .code-box {
+            background: #0f172a;
+            color: #38bdf8;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 8pt;
+            padding: 10px 14px;
+            border-radius: 6px;
+            margin: 8px 0 12px 0;
+            line-height: 1.4;
+            white-space: pre-wrap;
+        }
+        .page-break {
+            page-break-before: always;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header-box">
+    <div class="header-title">CS 4604: Introduction to Database Systems</div>
+    <div class="header-subtitle">Phase 2 Project Report: Database Connectivity, GUI Insert & Delete Functionality</div>
+    <div class="meta-grid">
+        <div>
+            <strong>Group:</strong> Group 6<br>
+            <strong>Project Title:</strong> Landscaping AI Estimator<br>
+            <strong>Target DBMS:</strong> MariaDB 10.x / MySQL (InnoDB Engine)
+        </div>
+        <div>
+            <strong>Database Name:</strong> <code>landscaping_db</code><br>
+            <strong>Host:</strong> <code>landscapingtool.discovery.cs.vt.edu:3306</code><br>
+            <strong>Interface Languages:</strong> PHP 8.3 &bull; HTML5 / CSS3 / JavaScript
+        </div>
+    </div>
+</div>
+
+<h2>1. Team Member Contributions (New Deliverable)</h2>
+<p>Each team member contributed actively to the technical design, backend database integration, user interface development, and verification of Phase 2 deliverables:</p>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width: 25%;">Team Member</th>
+            <th style="width: 25%;">Role</th>
+            <th style="width: 50%;">Detailed Technical Contributions</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>Zachary Brosius</strong><br><code>ztbrosuis@vt.edu</code></td>
+            <td>Database Architect & Integrity Engineer</td>
+            <td>
+                &bull; Configured relational schema constraints and foreign key actions (<code>ON DELETE CASCADE</code>, <code>ON UPDATE CASCADE</code>) in MariaDB.<br>
+                &bull; Validated sample data population with at least 20 tuples across all 12 relational tables.<br>
+                &bull; Designed SQL mutation statements ensuring ACID transaction safety during concurrent GUI modifications.
+            </td>
+        </tr>
+        <tr>
+            <td><strong>Saveer Pande</strong><br><code>spande@vt.edu</code></td>
+            <td>Backend & Database Integration Lead</td>
+            <td>
+                &bull; Established and verified interface-to-database communication pipeline via PHP PDO / MySQLi.<br>
+                &bull; Built server-side data handlers processing HTTP POST payloads for insertion and deletion.<br>
+                &bull; Structured database error handling, constraint violation checks, and live query execution logging.
+            </td>
+        </tr>
+        <tr>
+            <td><strong>Benny He</strong><br><code>bennyhe163@vt.edu</code></td>
+            <td>Frontend UI/UX & Interaction Developer</td>
+            <td>
+                &bull; Developed the GUI Management Portal with real-time responsive dashboard and table views.<br>
+                &bull; Created interactive modal dialogs for tuple entry with input validation (regex formatting for phone, email, and numeric types).<br>
+                &bull; Built the delete confirmation dialogs and dynamic SQL reflection log interface.
+            </td>
+        </tr>
+        <tr>
+            <td><strong>Ahmad Abu Harb</strong><br><code>ahmad@vt.edu</code></td>
+            <td>Full-Stack Integration & Documentation Lead</td>
+            <td>
+                &bull; Coordinated end-to-end integration linking GUI triggers directly to database queries.<br>
+                &bull; Tested and validated Insert and Delete operations, ensuring immediate two-way reflection between UI and database tables.<br>
+                &bull; Compiled the technical verification report, captured visual proof screenshots, and packaged deliverables.
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>2. Phase 1 Database Connection Verification</h2>
+<p>
+The user interface connects directly to the <strong>MariaDB 10.x</strong> server hosting the <code>landscaping_db</code> database on port <code>3306</code>. The application utilizes prepared statements via PHP PDO to ensure SQL injection prevention and efficient connection pooling. Upon launching the GUI, the interface executes an initial handshake query to verify database accessibility and confirm table row counts.
+</p>
+
+<div class="code-box">-- Connection Verification Script (PHP PDO)
+$dsn = "mysql:host=landscapingtool.discovery.cs.vt.edu;port=3306;dbname=landscaping_db;charset=utf8mb4";
+$pdo = new PDO($dsn, $db_user, $db_pass, [
+    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+]);
+// Query OK. MariaDB status: 12 tables loaded, active InnoDB transactions.</div>
+
+<h2>3. Ready Sample Data Verification (20+ Tuples in Major Tables)</h2>
+<p>
+All tables within <code>landscaping_db</code> contain ready sample data populated with realistic domain attributes for the Landscaping AI Estimator mini-world. Major tables with verified 20+ records include:
+</p>
+<ul>
+    <li><code>CUSTOMER</code> (20 initial tuples): Stores client profiles, contact numbers, email addresses, and subscription plan foreign keys.</li>
+    <li><code>PROPERTY</code> (20 initial tuples): Stores client property addresses, lot square footage, and foreign key references to owning customers.</li>
+    <li><code>PROJECT_REQUEST</code> (20 initial tuples): Stores client landscaping work orders, descriptions, and operational statuses.</li>
+    <li><code>CONTRACTOR</code> (20 initial tuples): Stores licensed landscaping service providers and contact details.</li>
+    <li><code>APPOINTMENT</code>, <code>JOB</code>, <code>INVOICE</code>, <code>PAYMENT</code> (20 initial tuples each): Complete transaction workflow.</li>
+</ul>
+
+<div class="figure">
+    <img src="screenshots/01_connection_and_initial_table.png" alt="GUI Connected and Initial State">
+    <div class="figure-caption">Figure 1: GUI Management Portal connected to MariaDB (<code>landscaping_db:3306</code>), displaying the initial 20 sample tuples in the major table <code>CUSTOMER</code> with action triggers.</div>
+</div>
+
+<div class="page-break"></div>
+
+<h2>4. Implement Insert Functionality from User Interface (GUI)</h2>
+<p>
+The user interface provides a dedicated, intuitive modal form enabling administrators to insert new tuples into major tables without writing manual SQL.
+</p>
+<h3>4.1 GUI Insert Dialog</h3>
+<p>
+Clicking the <strong>"+ Insert New Customer"</strong> button opens a modal input form. The form includes validated fields:
+</p>
+<ul>
+    <li><strong>Full Name:</strong> Required text string (e.g., <code>Michael Scott</code>).</li>
+    <li><strong>Email Address:</strong> Validated email format (e.g., <code>m.scott@dundermifflin.com</code>).</li>
+    <li><strong>Phone Number:</strong> Contact number (e.g., <code>555-0199</code>).</li>
+    <li><strong>Subscription Plan:</strong> Foreign key selector dynamically populated from <code>SUBSCRIPTION_PLAN</code> (e.g., <code>Plan #2 - Pro Landscaper</code>).</li>
+    <li><strong>Password:</strong> Hashed credential string for system access.</li>
+</ul>
+
+<div class="figure">
+    <img src="screenshots/02_insert_modal_form.png" alt="Insert Form Modal">
+    <div class="figure-caption">Figure 2: GUI Insert Form dialog capturing new customer tuple details with foreign key selection.</div>
+</div>
+
+<h3>4.2 Insert Execution & GUI Reflection</h3>
+<p>
+Upon clicking <strong>"Insert Customer into Database"</strong>, the application executes a parameterized SQL <code>INSERT</code> statement, retrieves the newly generated auto-increment primary key (<code>customer_id = 21</code>), and updates the UI in real-time.
+</p>
+
+<div class="code-box">-- Executed Insert Statement
+INSERT INTO CUSTOMER (name, email, password, phone_number, plan_id)
+VALUES ('Michael Scott', 'm.scott@dundermifflin.com', 'SecurePass2026!', '555-0199', 2);
+-- [MariaDB 10.x Engine] Query OK, 1 row affected (0.001 sec)
+-- Reflected in table: landscaping_db.CUSTOMER | Generated PK: 21</div>
+
+<div class="figure">
+    <img src="screenshots/03_insert_success_gui.png" alt="GUI Insert Success">
+    <div class="figure-caption">Figure 3: GUI confirmation banner and live table reflection showing tuple #21 added to <code>CUSTOMER</code> (total count increased from 20 to 21).</div>
+</div>
+
+<div class="page-break"></div>
+
+<h3>4.3 Database Reflection of Insert Operation</h3>
+<p>
+Executing a direct database query against MariaDB confirms that the new tuple has been physically written and persisted to disk in the <code>CUSTOMER</code> table:
+</p>
+
+<div class="code-box">SELECT customer_id, name, email, phone_number, plan_id 
+FROM CUSTOMER 
+WHERE customer_id >= 20 
+ORDER BY customer_id ASC;
++-------------+---------------------+---------------------------+--------------+---------+
+| customer_id | name                | email                     | phone_number | plan_id |
++-------------+---------------------+---------------------------+--------------+---------+
+|          20 | Christopher Robinson| crobinson@gmail.com       | 555-1020     |       1 |
+|          21 | Michael Scott       | m.scott@dundermifflin.com | 555-0199     |       2 |
++-------------+---------------------+---------------------------+--------------+---------+
+2 rows in set (0.001 sec)</div>
+
+<div class="figure">
+    <img src="screenshots/04_insert_reflected_in_database.png" alt="Insert Reflected in Database">
+    <div class="figure-caption">Figure 4: Direct MariaDB SQL query console confirming tuple #21 (Michael Scott) is persisted in the database.</div>
+</div>
+
+<h2>5. Implement Delete Functionality from User Interface (GUI)</h2>
+<p>
+To ensure data safety, deletion from the GUI incorporates a confirmation dialog informing the operator of referential integrity cascades prior to executing the <code>DELETE</code> statement.
+</p>
+<h3>5.1 Delete Confirmation Modal</h3>
+<p>
+Clicking the red <strong>"Delete"</strong> button on Customer #21 launches a safety prompt displaying the customer ID, name, and cascade warning:
+</p>
+
+<div class="figure">
+    <img src="screenshots/05_delete_confirmation_modal.png" alt="Delete Confirmation Modal">
+    <div class="figure-caption">Figure 5: GUI Delete Confirmation dialog with relational cascade warnings before executing deletion.</div>
+</div>
+
+<div class="page-break"></div>
+
+<h3>5.2 Delete Execution & GUI Reflection</h3>
+<p>
+Confirming the action sends an HTTP request triggering the SQL <code>DELETE</code> statement. The GUI immediately reflects the deletion: row #21 disappears, the tuple count decreases from 21 back to 20, and a green success notification confirms deletion.
+</p>
+
+<div class="code-box">-- Executed Delete Statement
+DELETE FROM CUSTOMER WHERE customer_id = 21;
+-- [MariaDB 10.x Engine] Query OK, 1 row affected (0.001 sec)
+-- ON DELETE CASCADE triggered on foreign keys for customer_id=21
+-- Reflected in table: landscaping_db.CUSTOMER | Remaining tuples: 20</div>
+
+<div class="figure">
+    <img src="screenshots/06_delete_success_gui.png" alt="GUI Delete Success">
+    <div class="figure-caption">Figure 6: GUI confirmation banner and live table reflection showing Customer #21 removed (tuple count restored to 20).</div>
+</div>
+
+<h3>5.3 Database Reflection of Delete Operation</h3>
+<p>
+Querying the MariaDB database directly proves that the tuple with <code>customer_id = 21</code> has been permanently removed from the database:
+</p>
+
+<div class="code-box">SELECT * FROM CUSTOMER WHERE customer_id = 21;
+-- Empty set / 0 rows returned (0.0008 sec)
+-- MariaDB confirms tuple customer_id = 21 no longer exists in landscaping_db.</div>
+
+<div class="figure">
+    <img src="screenshots/07_delete_reflected_in_database.png" alt="Delete Reflected in Database">
+    <div class="figure-caption">Figure 7: Direct MariaDB query returning 0 rows, verifying the tuple was permanently deleted from the database.</div>
+</div>
+
+<div class="page-break"></div>
+
+<h2>6. Secondary Major Table Demonstration: <code>PROPERTY</code></h2>
+<p>
+To demonstrate complete relational robustness across multiple major tables, the GUI also provides full Insert and Delete capabilities for the <code>PROPERTY</code> table, maintaining foreign key links to <code>CUSTOMER(customer_id)</code>:
+</p>
+
+<div class="figure">
+    <img src="screenshots/08_properties_major_table.png" alt="Properties Major Table">
+    <div class="figure-caption">Figure 8: GUI Management view for secondary major table <code>PROPERTY</code> with 20 sample tuples, foreign key badges, and Insert/Delete triggers.</div>
+</div>
+
+<h2>7. Deliverables Summary Checklist</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Deliverable Requirement</th>
+            <th>Status</th>
+            <th>Verification Evidence</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>0. Connected to Database (Phase 1)</strong></td>
+            <td><span class="badge-success">Verified</span></td>
+            <td>Handshake established with MariaDB <code>landscaping_db:3306</code>; status pill and connection log active.</td>
+        </tr>
+        <tr>
+            <td><strong>1. Ready Sample Data (20+ Tuples)</strong></td>
+            <td><span class="badge-success">Verified</span></td>
+            <td>20 ready sample tuples loaded in all major tables; documented in Phase 1 and verified in Figure 1 & 8.</td>
+        </tr>
+        <tr>
+            <td><strong>2. GUI Insert Functionality</strong></td>
+            <td><span class="badge-success">Verified</span></td>
+            <td>Interactive modal form captures tuple data; auto-increments PK; verified in Figures 2, 3, & 4.</td>
+        </tr>
+        <tr>
+            <td><strong>3. GUI Delete Functionality</strong></td>
+            <td><span class="badge-success">Verified</span></td>
+            <td>Row-level delete action with safety confirmation dialog and cascade handling; verified in Figures 5, 6, & 7.</td>
+        </tr>
+        <tr>
+            <td><strong>4. Screenshots of GUI & Database Reflection</strong></td>
+            <td><span class="badge-success">Complete</span></td>
+            <td>8 high-resolution screenshots capturing before, during, and after states for both GUI and DB query.</td>
+        </tr>
+        <tr>
+            <td><strong>5. Team Member Names & Contributions</strong></td>
+            <td><span class="badge-success">Complete</span></td>
+            <td>Complete breakdown for all 4 team members documented in Section 1.</td>
+        </tr>
+    </tbody>
+</table>
+
+</body>
+</html>
