@@ -1,7 +1,6 @@
 <?php
-require_once __DIR__ . '/header.php';
-
 session_start();
+require_once __DIR__ . '/header.php';
 
 // Fallback initial sample data matching phpMyAdmin Phase 1
 if (!isset($_SESSION['sample_customers'])) {
@@ -52,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $new_id = $pdo->lastInsertId();
                 $message = "Record successfully inserted into CUSTOMER! [CustomerID: #{$new_id}]";
                 $message_type = "success";
-                $executed_sql = "INSERT INTO CUSTOMER (name, email, password, phone_number, plan_id)\nVALUES ('" . addslashes($name) . "', '" . addslashes($email) . "', '" . addslashes($password) . "', '" . addslashes($phone) . "', {$plan_id});\n-- Query OK, 1 row affected (0.002 sec)\n-- Reflected in MariaDB table `landscaping_db.CUSTOMER`";
+                $executed_sql = "INSERT INTO CUSTOMER (name, email, password, phone_number, plan_id)\nVALUES ('" . addslashes($name) . "', '" . addslashes($email) . "', '" . addslashes($password) . "', '" . addslashes($phone) . "', {$plan_id});\n-- Query OK, 1 row affected\n-- Reflected in MariaDB table `{$db_name}.CUSTOMER`";
             } catch (Exception $e) {
                 $message = "Database Insert Error: " . $e->getMessage();
                 $message_type = "danger";
@@ -69,9 +68,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 'phone_number' => $phone,
                 'plan_id' => $plan_id
             ];
-            $message = "Record successfully inserted into CUSTOMER! [CustomerID: #{$new_id}]";
-            $message_type = "success";
-            $executed_sql = "INSERT INTO CUSTOMER (name, email, password, phone_number, plan_id)\nVALUES ('" . addslashes($name) . "', '" . addslashes($email) . "', '" . addslashes($password) . "', '" . addslashes($phone) . "', {$plan_id});\n-- Query OK, 1 row affected (0.001 sec)\n-- Database updated: CUSTOMER tuple count increased to " . count($_SESSION['sample_customers']);
+            $message = "DEMO MODE: customer #{$new_id} added to temporary demo data only (no database connected).";
+            $message_type = "warning";
+            $executed_sql = "INSERT INTO CUSTOMER (name, email, password, phone_number, plan_id)\nVALUES ('" . addslashes($name) . "', '" . addslashes($email) . "', '" . addslashes($password) . "', '" . addslashes($phone) . "', {$plan_id});\n-- DEMO MODE: no database connected, nothing was saved";
         }
     } else {
         $message = "Please fill in all required fields (Name, Email, Phone Number).";
@@ -89,9 +88,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             try {
                 $stmt = $pdo->prepare("DELETE FROM CUSTOMER WHERE customer_id = ?");
                 $stmt->execute([$delete_id]);
-                $message = "Record successfully deleted from CUSTOMER! [CustomerID: #{$delete_id}]";
-                $message_type = "success";
-                $executed_sql = "DELETE FROM CUSTOMER WHERE customer_id = {$delete_id};\n-- Query OK, 1 row affected (0.001 sec)\n-- Cascade: Associated properties/requests in landscaping_db updated.";
+                $affected = $stmt->rowCount();
+                $message = $affected ? "Record successfully deleted from CUSTOMER! [CustomerID: #{$delete_id}]" : "No CUSTOMER row with ID #{$delete_id} was found.";
+                $message_type = $affected ? "success" : "warning";
+                $executed_sql = "DELETE FROM CUSTOMER WHERE customer_id = {$delete_id};\n-- Query OK, {$affected} row(s) affected\n-- ON DELETE CASCADE removes this customer's dependent rows.";
             } catch (Exception $e) {
                 $message = "Database Delete Error: " . $e->getMessage();
                 $message_type = "danger";
@@ -102,9 +102,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $_SESSION['sample_customers'] = array_values(array_filter($_SESSION['sample_customers'], function($c) use ($delete_id) {
                 return $c['customer_id'] != $delete_id;
             }));
-            $message = "Record successfully deleted from CUSTOMER! [CustomerID: #{$delete_id}]";
-            $message_type = "success";
-            $executed_sql = "DELETE FROM CUSTOMER WHERE customer_id = {$delete_id};\n-- Query OK, 1 row affected (0.001 sec)\n-- Tuple removed from MariaDB. Remaining tuples in CUSTOMER: " . count($_SESSION['sample_customers']);
+            $message = "DEMO MODE: customer #{$delete_id} removed from temporary demo data only (no database connected).";
+            $message_type = "warning";
+            $executed_sql = "DELETE FROM CUSTOMER WHERE customer_id = {$delete_id};\n-- DEMO MODE: no database connected, nothing was saved";
         }
     }
 }
@@ -116,7 +116,8 @@ if ($pdo) {
         $stmt = $pdo->query("SELECT * FROM CUSTOMER ORDER BY customer_id ASC");
         $customers = $stmt->fetchAll();
     } catch (Exception $e) {
-        $customers = $_SESSION['sample_customers'];
+        $message = "Could not read CUSTOMER table: " . $e->getMessage();
+        $message_type = "danger";
     }
 } else {
     $customers = $_SESSION['sample_customers'];

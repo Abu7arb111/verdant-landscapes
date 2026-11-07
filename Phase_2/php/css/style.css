@@ -223,6 +223,12 @@ body {
     color: #991b1b;
 }
 
+.alert-warning {
+    background-color: #fffbeb;
+    border-color: #d97706;
+    color: #92400e;
+}
+
 .alert-info {
     background-color: #eff6ff;
     border-color: #2563eb;

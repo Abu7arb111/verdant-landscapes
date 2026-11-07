@@ -1,7 +1,6 @@
 <?php
-require_once __DIR__ . '/header.php';
-
 session_start();
+require_once __DIR__ . '/header.php';
 
 if (!isset($_SESSION['sample_properties'])) {
     $_SESSION['sample_properties'] = [
@@ -61,9 +60,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 'sqft' => $sqft,
                 'customer_id' => $customer_id
             ];
-            $message = "Property successfully added to database! [PropertyID: #{$new_id}]";
-            $message_type = "success";
-            $executed_sql = "INSERT INTO PROPERTY (address, sqft, customer_id)\nVALUES ('" . addslashes($address) . "', {$sqft}, {$customer_id});\n-- Query OK, 1 row affected\n-- Current PROPERTY count: " . count($_SESSION['sample_properties']);
+            $message = "DEMO MODE: property #{$new_id} added to temporary demo data only (no database connected).";
+            $message_type = "warning";
+            $executed_sql = "INSERT INTO PROPERTY (address, sqft, customer_id)\nVALUES ('" . addslashes($address) . "', {$sqft}, {$customer_id});\n-- DEMO MODE: no database connected, nothing was saved";
         }
     } else {
         $message = "Please enter valid property address and square footage.";
@@ -79,9 +78,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             try {
                 $stmt = $pdo->prepare("DELETE FROM PROPERTY WHERE property_id = ?");
                 $stmt->execute([$delete_id]);
-                $message = "Property #{$delete_id} successfully deleted from database.";
-                $message_type = "success";
-                $executed_sql = "DELETE FROM PROPERTY WHERE property_id = {$delete_id};\n-- Query OK, 1 row affected";
+                $affected = $stmt->rowCount();
+                $message = $affected ? "Property #{$delete_id} successfully deleted from database." : "No PROPERTY row with ID #{$delete_id} was found.";
+                $message_type = $affected ? "success" : "warning";
+                $executed_sql = "DELETE FROM PROPERTY WHERE property_id = {$delete_id};\n-- Query OK, {$affected} row(s) affected";
             } catch (Exception $e) {
                 $message = "Delete Error: " . $e->getMessage();
                 $message_type = "danger";
@@ -90,9 +90,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $_SESSION['sample_properties'] = array_values(array_filter($_SESSION['sample_properties'], function($p) use ($delete_id) {
                 return $p['property_id'] != $delete_id;
             }));
-            $message = "Property #{$delete_id} successfully deleted from database.";
-            $message_type = "success";
-            $executed_sql = "DELETE FROM PROPERTY WHERE property_id = {$delete_id};\n-- Query OK, 1 row affected\n-- Remaining properties: " . count($_SESSION['sample_properties']);
+            $message = "DEMO MODE: property #{$delete_id} removed from temporary demo data only (no database connected).";
+            $message_type = "warning";
+            $executed_sql = "DELETE FROM PROPERTY WHERE property_id = {$delete_id};\n-- DEMO MODE: no database connected, nothing was saved";
         }
     }
 }
@@ -103,7 +103,8 @@ if ($pdo) {
         $stmt = $pdo->query("SELECT * FROM PROPERTY ORDER BY property_id ASC");
         $properties = $stmt->fetchAll();
     } catch (Exception $e) {
-        $properties = $_SESSION['sample_properties'];
+        $message = "Could not read PROPERTY table: " . $e->getMessage();
+        $message_type = "danger";
     }
 } else {
     $properties = $_SESSION['sample_properties'];

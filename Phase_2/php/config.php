@@ -8,12 +8,17 @@
  * Database: landscaping_db
  */
 
-// Database credentials (default for Discovery cluster / local MariaDB)
-$db_host = getenv('DB_HOST') ?: '127.0.0.1';
-$db_port = getenv('DB_PORT') ?: '3306';
-$db_name = getenv('DB_NAME') ?: 'landscaping_db';
-$db_user = getenv('DB_USER') ?: 'landscaping_user';
-$db_pass = getenv('DB_PASS') ?: '';
+// Database credentials. Put your real Discovery values in config.local.php
+// (copy config.local.example.php). That file is git-ignored so the password
+// never gets committed. Environment variables also work.
+if (file_exists(__DIR__ . '/config.local.php')) {
+    require __DIR__ . '/config.local.php';
+}
+$db_host = $db_host ?? (getenv('DB_HOST') ?: '127.0.0.1');
+$db_port = $db_port ?? (getenv('DB_PORT') ?: '3306');
+$db_name = $db_name ?? (getenv('DB_NAME') ?: 'landscaping_db');
+$db_user = $db_user ?? (getenv('DB_USER') ?: 'landscaping_user');
+$db_pass = $db_pass ?? (getenv('DB_PASS') ?: '');
 
 $pdo = null;
 $db_connected = false;
