@@ -28,9 +28,14 @@ ALL_TABLES = [
 
 def mariadb_to_sqlite(script):
     """Small translation so the same .sql file we import into MariaDB also runs on SQLite."""
-    script = re.sub(r"(?im)^\s*(CREATE DATABASE|USE|SET)\b[^;]*;", "", script)
+    script = re.sub(r"(?im)^\s*(CREATE DATABASE|USE)\b[^;]*;", "", script)
+    # Session settings only (not the "SET status = ..." inside a trigger's UPDATE)
+    script = re.sub(r"(?im)^\s*SET\s+(FOREIGN_KEY_CHECKS|NAMES|SQL_MODE|AUTOCOMMIT|UNIQUE_CHECKS|TIME_ZONE)\b[^;]*;", "", script)
     script = re.sub(r"(?i)\bINT\s+AUTO_INCREMENT\s+PRIMARY\s+KEY", "INTEGER PRIMARY KEY AUTOINCREMENT", script)
     script = re.sub(r"(?i)\)\s*ENGINE\s*=\s*\w+[^;]*;", ");", script)
+    script = re.sub(r"(?i)\bCREATE\s+OR\s+REPLACE\s+VIEW\b", "CREATE VIEW", script)
+    # MariaDB allows a single-statement trigger body; SQLite needs BEGIN ... END
+    script = re.sub(r"(?is)(CREATE\s+TRIGGER\b.*?\bFOR\s+EACH\s+ROW)\s+(?!BEGIN\b)(.*?;)", r"\1\nBEGIN\n\2\nEND;", script)
     return script
 
 
@@ -175,6 +180,102 @@ FK_OPTIONS = {
 }
 
 
+# Fixed report queries for the Reports tab. Each shows a different SQL technique.
+REPORTS = [
+    {"id": "revenue_by_plan", "title": "Revenue & Profit by Subscription Plan",
+     "description": "Follows every job back to the customer who requested it and totals revenue, expenses and profit for each subscription plan.",
+     "tags": ["6-table JOIN", "GROUP BY", "SUM", "computed margin"],
+     "sql": """SELECT sp.plan_name, sp.tier,
+       COUNT(j.job_id)                   AS jobs,
+       SUM(j.revenue)                    AS total_revenue,
+       SUM(j.expenses)                   AS total_expenses,
+       SUM(j.revenue - j.expenses)       AS total_profit,
+       ROUND(100.0 * SUM(j.revenue - j.expenses) / SUM(j.revenue), 1) AS margin_pct
+FROM SUBSCRIPTION_PLAN sp
+JOIN CUSTOMER c          ON c.plan_id     = sp.plan_id
+JOIN PROJECT_REQUEST r   ON r.customer_id = c.customer_id
+JOIN AI_ESTIMATE e       ON e.request_id  = r.request_id
+JOIN CONTRACTOR_QUOTE q  ON q.ai_id       = e.ai_id
+JOIN JOB j               ON j.quote_id    = q.quote_id
+GROUP BY sp.plan_id, sp.plan_name, sp.tier
+ORDER BY total_profit DESC"""},
+    {"id": "outstanding_invoices", "title": "Outstanding Invoices",
+     "description": "Every invoice that still has money owed, using the v_invoice_balance view (only Completed payments count as paid).",
+     "tags": ["VIEW", "LEFT JOIN", "CASE", "WHERE on aggregate"],
+     "sql": """SELECT invoice_id, customer_name, amount_due, amount_paid, balance_due, due_date, status
+FROM v_invoice_balance
+WHERE balance_due > 0
+ORDER BY balance_due DESC"""},
+    {"id": "customers_owing", "title": "Customers Owing More Than $500",
+     "description": "Groups the open balances by customer and keeps only customers who owe more than $500 in total.",
+     "tags": ["VIEW", "GROUP BY", "HAVING", "COUNT"],
+     "sql": """SELECT customer_name,
+       COUNT(*)         AS open_invoices,
+       SUM(balance_due) AS total_owed
+FROM v_invoice_balance
+WHERE balance_due > 0
+GROUP BY customer_name
+HAVING SUM(balance_due) > 500
+ORDER BY total_owed DESC"""},
+    {"id": "estimate_accuracy", "title": "AI Estimate vs. Contractor Quote",
+     "description": "How far each contractor's quote landed from the AI estimate, largest gaps first.",
+     "tags": ["4-table JOIN", "computed columns", "ABS", "ORDER BY expression"],
+     "sql": """SELECT r.request_id,
+       k.business_name   AS contractor,
+       e.estimated_price AS ai_estimate,
+       q.final_price     AS quoted_price,
+       q.final_price - e.estimated_price AS gap,
+       ROUND(100.0 * (q.final_price - e.estimated_price) / e.estimated_price, 1) AS gap_pct,
+       q.status          AS quote_status
+FROM CONTRACTOR_QUOTE q
+JOIN AI_ESTIMATE e      ON e.ai_id         = q.ai_id
+JOIN PROJECT_REQUEST r  ON r.request_id    = e.request_id
+JOIN CONTRACTOR k       ON k.contractor_id = q.contractor_id
+ORDER BY ABS(q.final_price - e.estimated_price) DESC"""},
+    {"id": "contractors_no_accepted", "title": "Contractors With No Accepted Quote",
+     "description": "Contractors who have submitted quotes but have never had one accepted.",
+     "tags": ["NOT EXISTS subquery", "LEFT JOIN", "GROUP BY"],
+     "sql": """SELECT k.contractor_id, k.business_name, k.contact_name,
+       COUNT(q.quote_id) AS quotes_submitted
+FROM CONTRACTOR k
+LEFT JOIN CONTRACTOR_QUOTE q ON q.contractor_id = k.contractor_id
+WHERE NOT EXISTS (
+    SELECT 1 FROM CONTRACTOR_QUOTE a
+    WHERE a.contractor_id = k.contractor_id AND a.status = 'Accepted'
+)
+GROUP BY k.contractor_id, k.business_name, k.contact_name
+ORDER BY k.contractor_id"""},
+    {"id": "job_summary", "title": "Job Summary (v_job_summary)",
+     "description": "The v_job_summary view: every job with its customer, property, contractor, the AI estimate, the quote and the profit.",
+     "tags": ["VIEW", "7-table JOIN"],
+     "sql": """SELECT job_id, customer_name, property_address, contractor, job_status,
+       ai_estimate, quoted_price, revenue, profit
+FROM v_job_summary
+ORDER BY profit DESC"""},
+]
+REPORTS_BY_ID = {r["id"]: r for r in REPORTS}
+
+
+def run_report(report_id):
+    report = REPORTS_BY_ID[report_id]
+    conn = get_conn()
+    cur = conn.execute(report["sql"])
+    cols = [d[0] for d in cur.description]
+    rows = [list(r) for r in cur.fetchall()]
+    conn.close()
+    return {"status": "success", "columns": cols, "rows": rows,
+            "sql": report["sql"] + f";\n-- {len(rows)} row(s) returned", "timestamp": now()}
+
+
+def db_objects():
+    conn = get_conn()
+    rows = conn.execute("""SELECT type, name, tbl_name, sql FROM sqlite_master
+                           WHERE type IN ('view', 'trigger', 'index') AND name NOT LIKE 'sqlite_%'
+                           ORDER BY CASE type WHEN 'view' THEN 1 WHEN 'trigger' THEN 2 ELSE 3 END, name""").fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
 class BadInput(ValueError):
     pass
 
@@ -270,7 +371,7 @@ HTML_PAGE = """<!DOCTYPE html>
         /* SQL Reflection Box */
         .sql-box { background: #0f172a; color: #f8fafc; border-radius: 10px; padding: 1.3rem 1.5rem; margin-bottom: 1.75rem; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.9rem; border: 1px solid #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         .sql-header { display: flex; justify-content: space-between; margin-bottom: 0.65rem; color: #38bdf8; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #1e293b; padding-bottom: 0.4rem; }
-        .sql-code { color: #a5f3fc; white-space: pre-wrap; line-height: 1.6; }
+        .sql-code { color: #a5f3fc; white-space: pre-wrap; line-height: 1.6; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.85rem; }
 
         /* Modal */
         .modal-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.65); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; }
@@ -318,6 +419,22 @@ HTML_PAGE = """<!DOCTYPE html>
         .form-row textarea { padding: 0.7rem 0.85rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; font-family: inherit; resize: vertical; }
         .form-row textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(27,94,32,0.15); }
         .modal-body { max-height: 65vh; overflow-y: auto; }
+
+        /* Reports */
+        .report-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 0.75rem; padding: 1.1rem 1.5rem; }
+        .report-card { text-align: left; background: white; border: 1px solid var(--border); border-radius: 10px; padding: 0.8rem 0.95rem; cursor: pointer; font-family: inherit; color: var(--text); }
+        .report-card:hover { border-color: var(--primary); }
+        .report-card.active { border-color: var(--primary); background: var(--primary-light); box-shadow: 0 0 0 2px rgba(27,94,32,0.15); }
+        .report-card strong { display: block; font-size: 0.92rem; margin-bottom: 0.4rem; }
+        .tag { display: inline-block; background: #eef2ff; color: #3730a3; border-radius: 10px; padding: 1px 8px; font-size: 0.7rem; font-weight: 700; margin: 0 0.25rem 0.25rem 0; }
+        .report-total { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; text-align: right; }
+        .report-total strong { display: block; font-size: 1.35rem; color: var(--text); }
+        td.num, th.num { text-align: right; }
+        .obj-type { font-size: 0.7rem; font-weight: 800; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; }
+        .obj-view { background: #e0f2fe; color: #075985; }
+        .obj-trigger { background: #fef3c7; color: #92400e; }
+        .obj-index { background: #f1f5f9; color: #334155; }
+        .obj-sql { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.75rem; white-space: pre-wrap; color: #334155; margin: 0; max-height: 9.5em; overflow-y: auto; }
     </style>
 </head>
 <body>
@@ -334,6 +451,7 @@ HTML_PAGE = """<!DOCTYPE html>
         <button class="tab-btn active" id="tabCust" onclick="switchView('customers')">CUSTOMER (Major)</button>
         <button class="tab-btn" id="tabProp" onclick="switchView('properties')">PROPERTY (Major)</button>
         <button class="tab-btn" id="tabWf" onclick="switchView('workflow')">Project Workflow</button>
+        <button class="tab-btn" id="tabRep" onclick="switchView('reports')">Reports</button>
         <button class="tab-btn" id="tabDb" onclick="switchView('db_view')">Database Query Inspector</button>
     </div>
     <div class="status-badge">
@@ -466,6 +584,38 @@ SELECT table_name, table_rows FROM information_schema.tables WHERE table_schema=
             </div>
         </div>
         <div style="overflow-x: auto;" id="wfTable"></div>
+    </div>
+
+    <!-- VIEW 2c: REPORTS (multi-table queries, views, triggers, indexes) -->
+    <div id="viewReports" class="hidden">
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <div class="card-title">Reports: Multi-Table Queries</div>
+                    <div class="card-sub">Each report runs a fixed SQL query against the live database. The exact query appears in the SQL box above.</div>
+                </div>
+            </div>
+            <div class="report-grid" id="reportList"></div>
+        </div>
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <div class="card-title" id="reportTitle">Pick a report</div>
+                    <div class="card-sub" id="reportDesc"></div>
+                </div>
+                <div class="report-total" id="reportTotal"></div>
+            </div>
+            <div style="overflow-x: auto;" id="reportTable"></div>
+        </div>
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <div class="card-title">Database Objects: Views, Triggers &amp; Indexes</div>
+                    <div class="card-sub">Read from the database catalog (<code>sqlite_master</code>), so this lists what actually exists, not a hardcoded list.</div>
+                </div>
+            </div>
+            <div style="overflow-x: auto;" id="dbObjects"></div>
+        </div>
     </div>
 
     <!-- VIEW 3: DATABASE INSPECTOR (phpMyAdmin simulator) -->
@@ -722,7 +872,7 @@ function renderProperties() {
 
 function switchView(view) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    ['viewCustomers', 'viewProperties', 'viewWorkflow', 'viewDatabase'].forEach(id => document.getElementById(id).classList.add('hidden'));
+    ['viewCustomers', 'viewProperties', 'viewWorkflow', 'viewReports', 'viewDatabase'].forEach(id => document.getElementById(id).classList.add('hidden'));
 
     if (view === 'customers') {
         document.getElementById('tabCust').classList.add('active');
@@ -734,6 +884,10 @@ function switchView(view) {
         document.getElementById('tabWf').classList.add('active');
         document.getElementById('viewWorkflow').classList.remove('hidden');
         return loadWorkflow(true);
+    } else if (view === 'reports') {
+        document.getElementById('tabRep').classList.add('active');
+        document.getElementById('viewReports').classList.remove('hidden');
+        return loadReports();
     } else {
         document.getElementById('tabDb').classList.add('active');
         document.getElementById('viewDatabase').classList.remove('hidden');
@@ -797,6 +951,7 @@ function handleWrite(data, successText, closeFn) {
         showAlert('danger', 'Database rejected the change: ' + escapeHtml(data.error));
         return false;
     }
+    if (data.trigger_note) successText += ` <br><span style="font-weight: 500;">⚡ ${escapeHtml(data.trigger_note)}</span>`;
     if (data.affected === 0) {
         showAlert('danger', 'No matching row was found, so nothing changed.');
         return false;
@@ -916,6 +1071,67 @@ async function submitUpdateProperty() {
     } catch (e) {
         showAlert('danger', 'Error updating property: ' + e);
     }
+}
+
+// ---------- Reports ----------
+let reportList = [];
+let currentReport = null;
+const MONEY_COLS = /(price|revenue|expenses|profit|amount|balance|owed|estimate|gap$)/;
+
+async function loadReports() {
+    if (!reportList.length) reportList = await getJson('/api/reports');
+    if (!currentReport) currentReport = reportList[0].id;
+    await runReport(currentReport);
+    await loadDbObjects();
+}
+
+function renderReportList() {
+    document.getElementById('reportList').innerHTML = reportList.map(r => `
+        <button class="report-card ${r.id === currentReport ? 'active' : ''}" onclick="runReport('${r.id}')">
+            <strong>${escapeHtml(r.title)}</strong>
+            ${r.tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}
+        </button>`).join('');
+}
+
+function fmtReportCell(col, v) {
+    if (v === null || v === undefined) return '<span class="muted">NULL</span>';
+    if (typeof v === 'number' && col.endsWith('_pct')) return `${v > 0 && col.startsWith('gap') ? '+' : ''}${v.toFixed(1)}%`;
+    if (typeof v === 'number' && MONEY_COLS.test(col)) return (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (col.endsWith('status')) return `<span class="status-pill status-${String(v).toLowerCase().replace(/[^a-z]+/g, '-')}">${escapeHtml(v)}</span>`;
+    if (typeof v === 'number') return v.toLocaleString();
+    return escapeHtml(v);
+}
+
+async function runReport(id) {
+    currentReport = id;
+    renderReportList();
+    const meta = reportList.find(r => r.id === id);
+    const data = await getJson('/api/report/' + id);
+    updateSqlBox(data.sql, data.timestamp);
+    document.getElementById('reportTitle').innerText = meta.title;
+    document.getElementById('reportDesc').innerText = meta.description;
+    // Show a total for the first money column, when there is one
+    let moneyIdx = data.columns.findIndex(c => /^(total_|balance)/.test(c) && MONEY_COLS.test(c));
+    if (moneyIdx < 0) moneyIdx = data.columns.findIndex(c => MONEY_COLS.test(c) && !c.endsWith('_pct') && c !== 'gap' && c !== 'ai_estimate' && c !== 'quoted_price');
+    const totalCol = moneyIdx >= 0 ? data.columns[moneyIdx] : null;
+    document.getElementById('reportTotal').innerHTML = totalCol
+        ? `<strong>${fmtReportCell(totalCol, data.rows.reduce((s, r) => s + Number(r[moneyIdx] || 0), 0))}</strong>total ${escapeHtml(totalCol.replace(/^total_/, '').replace(/_/g, ' '))} &bull; ${data.rows.length} rows`
+        : `<strong>${data.rows.length}</strong>rows`;
+    let html = '<table><thead><tr>' + data.columns.map(c => `<th>${escapeHtml(c)}</th>`).join('') + '</tr></thead><tbody>';
+    if (!data.rows.length) html += `<tr><td colspan="${data.columns.length}" class="empty">No rows returned.</td></tr>`;
+    data.rows.forEach(row => {
+        html += '<tr>' + row.map((v, i) => `<td>${fmtReportCell(data.columns[i], v)}</td>`).join('') + '</tr>';
+    });
+    document.getElementById('reportTable').innerHTML = html + '</tbody></table>';
+}
+
+async function loadDbObjects() {
+    const objs = await getJson('/api/db_objects');
+    let html = '<table><thead><tr><th>Type</th><th>Name</th><th>On Table</th><th>Definition</th></tr></thead><tbody>';
+    objs.forEach(o => {
+        html += `<tr><td><span class="obj-type obj-${o.type}">${o.type}</span></td><td><strong>${escapeHtml(o.name)}</strong></td><td><code>${escapeHtml(o.tbl_name)}</code></td><td><pre class="obj-sql">${escapeHtml(o.sql)}</pre></td></tr>`;
+    });
+    document.getElementById('dbObjects').innerHTML = html + '</tbody></table>';
 }
 
 // ---------- Project workflow ----------
@@ -1218,6 +1434,22 @@ VALUES ('Michael Scott', 'm.scott@dundermifflin.com', 'SecurePass2026!', '555-01
         await nextStep(6);
         document.getElementById('rf_estimated_price').value = '3800.00';
         document.getElementById('rf_ideas_generated').value = 'Tumbled travertine pavers with a gravel border and two low-voltage accent lights.';
+    } else if (state === 'report') {
+        currentReport = params.get('id') || 'revenue_by_plan';
+        await switchView('reports');
+    } else if (state === 'db_objects') {
+        currentReport = 'outstanding_invoices';
+        await switchView('reports');
+    } else if (state === 'trigger_demo') {
+        // Mark payment #2 Completed -> trigger sets INVOICE #2 to 'Paid'
+        await switchView('workflow');
+        await selectWfTable('PAYMENT');
+        openRowModal('PAYMENT', 2);
+        document.getElementById('rf_status').value = 'Completed';
+        await submitRowForm();
+        wfTable = 'INVOICE';
+        document.getElementById('wfSearch').value = '340';
+        await loadWorkflow(false);
     } else if (state === 'properties') {
         switchView('properties');
         updateSqlBox(`-- Major Table PROPERTY Selected
@@ -1274,6 +1506,12 @@ def write_row(table, action, payload):
     shown = render_sql(sql, params) + ";"
     conn = get_conn()
     try:
+        invoice_id, before = None, None
+        if table == "PAYMENT" and action != "delete":
+            invoice_id = values[[c["name"] for c in cols].index("invoice_id")] if any(c["name"] == "invoice_id" for c in cols) \
+                else conn.execute("SELECT invoice_id FROM PAYMENT WHERE payment_id = ?", (payload["id"],)).fetchone()[0]
+            row = conn.execute("SELECT status FROM INVOICE WHERE invoice_id = ?", (invoice_id,)).fetchone()
+            before = row[0] if row else None
         cur = conn.execute(sql, params)
         conn.commit()
         result = {"status": "success", "affected": cur.rowcount, "timestamp": now()}
@@ -1281,6 +1519,14 @@ def write_row(table, action, payload):
             result["new_id"] = cur.lastrowid
         result["sql"] = shown + f"\n-- Query OK, {cur.rowcount} row(s) affected" + (
             f" | Generated PK {pk} = {cur.lastrowid}" if action == "insert" else "")
+        if invoice_id is not None:
+            row = conn.execute("SELECT status FROM INVOICE WHERE invoice_id = ?", (invoice_id,)).fetchone()
+            after = row[0] if row else None
+            if after != before:
+                trigger = f"trg_payment_{action}_mark_paid"
+                note = f"Trigger {trigger} fired: INVOICE #{invoice_id} status '{before}' -> '{after}'."
+                result["trigger_note"] = note
+                result["sql"] += f"\n-- {note}"
         return result
     except sqlite3.DatabaseError as e:
         return {"status": "error", "error": str(e), "sql": shown + f"\n-- ERROR: {e}", "timestamp": now()}
@@ -1319,6 +1565,12 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             data = {t: conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in ALL_TABLES}
             conn.close()
             self.send_json(data)
+        elif parsed.path == "/api/reports":
+            self.send_json([{k: r[k] for k in ("id", "title", "description", "tags")} for r in REPORTS])
+        elif parsed.path.startswith("/api/report/") and parsed.path.split("/")[3] in REPORTS_BY_ID:
+            self.send_json(run_report(parsed.path.split("/")[3]))
+        elif parsed.path == "/api/db_objects":
+            self.send_json(db_objects())
         elif parsed.path.startswith("/api/rows/") and parsed.path.split("/")[3] in TABLES:
             table = parsed.path.split("/")[3]
             self.send_json(list_rows(table, query.get("q", [""])[0].strip()))

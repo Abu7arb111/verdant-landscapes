@@ -447,3 +447,79 @@ INSERT INTO PAYMENT (payment_id, amount, payment_date, status, payment_method, i
 (18, 2450.00, '2026-05-18', 'Completed', 'Credit Card', 18),
 (19, 250.00, '2026-05-19', 'Completed', 'Debit Card', 19),
 (20, 440.00, '2026-05-20', 'Pending', 'Credit Card', 20);
+
+
+-- ==============================================================================
+-- VIEWS, TRIGGERS & INDEXES
+-- Written in syntax that runs on both MariaDB and the SQLite copy used by app/server.py.
+-- ==============================================================================
+
+-- View 1: one row per job with the customer, property and contractor behind it.
+-- Path: JOB -> CONTRACTOR_QUOTE -> AI_ESTIMATE -> PROJECT_REQUEST -> PROPERTY / CUSTOMER
+CREATE OR REPLACE VIEW v_job_summary AS
+SELECT j.job_id,
+       c.name             AS customer_name,
+       pr.address         AS property_address,
+       k.business_name    AS contractor,
+       j.status           AS job_status,
+       j.start_date,
+       e.estimated_price  AS ai_estimate,
+       q.final_price      AS quoted_price,
+       j.revenue,
+       j.expenses,
+       j.revenue - j.expenses AS profit
+FROM JOB j
+JOIN CONTRACTOR k        ON k.contractor_id = j.contractor_id
+JOIN CONTRACTOR_QUOTE q  ON q.quote_id      = j.quote_id
+JOIN AI_ESTIMATE e       ON e.ai_id         = q.ai_id
+JOIN PROJECT_REQUEST r   ON r.request_id    = e.request_id
+JOIN PROPERTY pr         ON pr.property_id  = r.property_id
+JOIN CUSTOMER c          ON c.customer_id   = r.customer_id;
+
+-- View 2: each invoice with how much has actually been paid (Completed payments only).
+CREATE OR REPLACE VIEW v_invoice_balance AS
+SELECT i.invoice_id,
+       i.job_id,
+       c.name AS customer_name,
+       i.amount_due,
+       COALESCE(SUM(CASE WHEN p.status = 'Completed' THEN p.amount END), 0) AS amount_paid,
+       i.amount_due - COALESCE(SUM(CASE WHEN p.status = 'Completed' THEN p.amount END), 0) AS balance_due,
+       i.due_date,
+       i.status
+FROM INVOICE i
+JOIN JOB j               ON j.job_id     = i.job_id
+JOIN CONTRACTOR_QUOTE q  ON q.quote_id   = j.quote_id
+JOIN AI_ESTIMATE e       ON e.ai_id      = q.ai_id
+JOIN PROJECT_REQUEST r   ON r.request_id = e.request_id
+JOIN CUSTOMER c          ON c.customer_id = r.customer_id
+LEFT JOIN PAYMENT p      ON p.invoice_id = i.invoice_id
+GROUP BY i.invoice_id, i.job_id, c.name, i.amount_due, i.due_date, i.status;
+
+-- Triggers: when Completed payments cover an invoice's amount_due, mark the invoice 'Paid'.
+-- (Single-statement triggers, so phpMyAdmin imports them without a DELIMITER change.)
+CREATE TRIGGER trg_payment_insert_mark_paid
+AFTER INSERT ON PAYMENT
+FOR EACH ROW
+UPDATE INVOICE
+SET status = 'Paid'
+WHERE invoice_id = NEW.invoice_id
+  AND (SELECT COALESCE(SUM(amount), 0) FROM PAYMENT
+       WHERE invoice_id = NEW.invoice_id AND status = 'Completed') >= amount_due;
+
+CREATE TRIGGER trg_payment_update_mark_paid
+AFTER UPDATE ON PAYMENT
+FOR EACH ROW
+UPDATE INVOICE
+SET status = 'Paid'
+WHERE invoice_id = NEW.invoice_id
+  AND (SELECT COALESCE(SUM(amount), 0) FROM PAYMENT
+       WHERE invoice_id = NEW.invoice_id AND status = 'Completed') >= amount_due;
+
+-- Indexes on the columns the GUI searches and the reports filter on.
+-- (InnoDB already indexes every foreign key column automatically.)
+CREATE INDEX idx_customer_name         ON CUSTOMER(name);
+CREATE INDEX idx_property_address      ON PROPERTY(address);
+CREATE INDEX idx_request_status        ON PROJECT_REQUEST(status);
+CREATE INDEX idx_job_status            ON JOB(status);
+CREATE INDEX idx_invoice_status_due    ON INVOICE(status, due_date);
+CREATE INDEX idx_payment_invoice_status ON PAYMENT(invoice_id, status);
