@@ -1,3 +1,6 @@
 Phase_2/php/config.local.php
 __pycache__/
 Phase_2/app/landscaping.db
+Phase_3/php/config.local.php
+Phase_3/app/landscaping.db
+Phase_3/app/.venv/

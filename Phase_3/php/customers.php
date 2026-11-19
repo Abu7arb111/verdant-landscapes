@@ -5,26 +5,26 @@ require_once __DIR__ . '/header.php';
 // Fallback initial sample data matching phpMyAdmin Phase 1
 if (!isset($_SESSION['sample_customers'])) {
     $_SESSION['sample_customers'] = [
-        ['customer_id' => 1, 'name' => 'John Smith', 'email' => 'john.smith@gmail.com', 'password' => 'cust_pass_01', 'phone_number' => '555-1001', 'plan_id' => 1],
-        ['customer_id' => 2, 'name' => 'Jane Doe', 'email' => 'jane.doe@yahoo.com', 'password' => 'cust_pass_02', 'phone_number' => '555-1002', 'plan_id' => 2],
-        ['customer_id' => 3, 'name' => 'Robert Johnson', 'email' => 'rjohnson@outlook.com', 'password' => 'cust_pass_03', 'phone_number' => '555-1003', 'plan_id' => 3],
-        ['customer_id' => 4, 'name' => 'Emily Davis', 'email' => 'emily.davis@gmail.com', 'password' => 'cust_pass_04', 'phone_number' => '555-1004', 'plan_id' => 1],
-        ['customer_id' => 5, 'name' => 'Michael Brown', 'email' => 'mbrown@yahoo.com', 'password' => 'cust_pass_05', 'phone_number' => '555-1005', 'plan_id' => 2],
-        ['customer_id' => 6, 'name' => 'Jessica Wilson', 'email' => 'jwilson@gmail.com', 'password' => 'cust_pass_06', 'phone_number' => '555-1006', 'plan_id' => 1],
-        ['customer_id' => 7, 'name' => 'David Martinez', 'email' => 'dmartinez@outlook.com', 'password' => 'cust_pass_07', 'phone_number' => '555-1007', 'plan_id' => 3],
-        ['customer_id' => 8, 'name' => 'Sarah Anderson', 'email' => 'sanderson@gmail.com', 'password' => 'cust_pass_08', 'phone_number' => '555-1008', 'plan_id' => 2],
-        ['customer_id' => 9, 'name' => 'James Taylor', 'email' => 'jtaylor@yahoo.com', 'password' => 'cust_pass_09', 'phone_number' => '555-1009', 'plan_id' => 1],
-        ['customer_id' => 10, 'name' => 'Linda Thomas', 'email' => 'lthomas@gmail.com', 'password' => 'cust_pass_10', 'phone_number' => '555-1010', 'plan_id' => 3],
-        ['customer_id' => 11, 'name' => 'Barbara Hernandez', 'email' => 'bhernandez@outlook.com', 'password' => 'cust_pass_11', 'phone_number' => '555-1011', 'plan_id' => 2],
-        ['customer_id' => 12, 'name' => 'William Moore', 'email' => 'wmoore@gmail.com', 'password' => 'cust_pass_12', 'phone_number' => '555-1012', 'plan_id' => 1],
-        ['customer_id' => 13, 'name' => 'Elizabeth Martin', 'email' => 'emartin@yahoo.com', 'password' => 'cust_pass_13', 'phone_number' => '555-1013', 'plan_id' => 2],
-        ['customer_id' => 14, 'name' => 'Joseph Jackson', 'email' => 'jjackson@gmail.com', 'password' => 'cust_pass_14', 'phone_number' => '555-1014', 'plan_id' => 3],
-        ['customer_id' => 15, 'name' => 'Margaret White', 'email' => 'mwhite@outlook.com', 'password' => 'cust_pass_15', 'phone_number' => '555-1015', 'plan_id' => 1],
-        ['customer_id' => 16, 'name' => 'Charles Harris', 'email' => 'charris@gmail.com', 'password' => 'cust_pass_16', 'phone_number' => '555-1016', 'plan_id' => 2],
-        ['customer_id' => 17, 'name' => 'Susan Clark', 'email' => 'sclark@yahoo.com', 'password' => 'cust_pass_17', 'phone_number' => '555-1017', 'plan_id' => 1],
-        ['customer_id' => 18, 'name' => 'Thomas Ramirez', 'email' => 'tramirez@gmail.com', 'password' => 'cust_pass_18', 'phone_number' => '555-1018', 'plan_id' => 3],
-        ['customer_id' => 19, 'name' => 'Karen Lewis', 'email' => 'klewis@outlook.com', 'password' => 'cust_pass_19', 'phone_number' => '555-1019', 'plan_id' => 2],
-        ['customer_id' => 20, 'name' => 'Christopher Robinson', 'email' => 'crobinson@gmail.com', 'password' => 'cust_pass_20', 'phone_number' => '555-1020', 'plan_id' => 1]
+        ['customer_id' => 1, 'name' => 'John Smith', 'email' => 'john.smith@gmail.com', 'phone_number' => '555-1001', 'plan_id' => 1],
+        ['customer_id' => 2, 'name' => 'Jane Doe', 'email' => 'jane.doe@yahoo.com', 'phone_number' => '555-1002', 'plan_id' => 2],
+        ['customer_id' => 3, 'name' => 'Robert Johnson', 'email' => 'rjohnson@outlook.com', 'phone_number' => '555-1003', 'plan_id' => 3],
+        ['customer_id' => 4, 'name' => 'Emily Davis', 'email' => 'emily.davis@gmail.com', 'phone_number' => '555-1004', 'plan_id' => 1],
+        ['customer_id' => 5, 'name' => 'Michael Brown', 'email' => 'mbrown@yahoo.com', 'phone_number' => '555-1005', 'plan_id' => 2],
+        ['customer_id' => 6, 'name' => 'Jessica Wilson', 'email' => 'jwilson@gmail.com', 'phone_number' => '555-1006', 'plan_id' => 1],
+        ['customer_id' => 7, 'name' => 'David Martinez', 'email' => 'dmartinez@outlook.com', 'phone_number' => '555-1007', 'plan_id' => 3],
+        ['customer_id' => 8, 'name' => 'Sarah Anderson', 'email' => 'sanderson@gmail.com', 'phone_number' => '555-1008', 'plan_id' => 2],
+        ['customer_id' => 9, 'name' => 'James Taylor', 'email' => 'jtaylor@yahoo.com', 'phone_number' => '555-1009', 'plan_id' => 1],
+        ['customer_id' => 10, 'name' => 'Linda Thomas', 'email' => 'lthomas@gmail.com', 'phone_number' => '555-1010', 'plan_id' => 3],
+        ['customer_id' => 11, 'name' => 'Barbara Hernandez', 'email' => 'bhernandez@outlook.com', 'phone_number' => '555-1011', 'plan_id' => 2],
+        ['customer_id' => 12, 'name' => 'William Moore', 'email' => 'wmoore@gmail.com', 'phone_number' => '555-1012', 'plan_id' => 1],
+        ['customer_id' => 13, 'name' => 'Elizabeth Martin', 'email' => 'emartin@yahoo.com', 'phone_number' => '555-1013', 'plan_id' => 2],
+        ['customer_id' => 14, 'name' => 'Joseph Jackson', 'email' => 'jjackson@gmail.com', 'phone_number' => '555-1014', 'plan_id' => 3],
+        ['customer_id' => 15, 'name' => 'Margaret White', 'email' => 'mwhite@outlook.com', 'phone_number' => '555-1015', 'plan_id' => 1],
+        ['customer_id' => 16, 'name' => 'Charles Harris', 'email' => 'charris@gmail.com', 'phone_number' => '555-1016', 'plan_id' => 2],
+        ['customer_id' => 17, 'name' => 'Susan Clark', 'email' => 'sclark@yahoo.com', 'phone_number' => '555-1017', 'plan_id' => 1],
+        ['customer_id' => 18, 'name' => 'Thomas Ramirez', 'email' => 'tramirez@gmail.com', 'phone_number' => '555-1018', 'plan_id' => 3],
+        ['customer_id' => 19, 'name' => 'Karen Lewis', 'email' => 'klewis@outlook.com', 'phone_number' => '555-1019', 'plan_id' => 2],
+        ['customer_id' => 20, 'name' => 'Christopher Robinson', 'email' => 'crobinson@gmail.com', 'phone_number' => '555-1020', 'plan_id' => 1]
     ];
 }
 
@@ -39,19 +39,23 @@ $new_id = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'insert') {
     $name = trim($_POST['name'] ?? '');
     $email = trim($_POST['email'] ?? '');
-    $password = trim($_POST['password'] ?? '');
+    $password = $_POST['password'] ?? '';
     $phone = trim($_POST['phone_number'] ?? '');
     $plan_id = intval($_POST['plan_id'] ?? 1);
 
-    if (!empty($name) && !empty($email) && !empty($phone)) {
+    if (!empty($name) && !empty($email) && !empty($phone) && is_string($password) && trim($password) !== '') {
         if ($pdo) {
             try {
                 $stmt = $pdo->prepare("INSERT INTO CUSTOMER (name, email, password, phone_number, plan_id) VALUES (?, ?, ?, ?, ?)");
-                $stmt->execute([$name, $email, $password, $phone, $plan_id]);
+                $salt = random_bytes(16);
+                $iterations = 600000;
+                $digest = hash_pbkdf2('sha256', $password, $salt, $iterations, 64);
+                $hash = 'pbkdf2-sha256$' . $iterations . '$' . bin2hex($salt) . '$' . $digest;
+                $stmt->execute([$name, $email, $hash, $phone, $plan_id]);
                 $new_id = $pdo->lastInsertId();
                 $message = "Record successfully inserted into CUSTOMER! [CustomerID: #{$new_id}]";
                 $message_type = "success";
-                $executed_sql = "INSERT INTO CUSTOMER (name, email, password, phone_number, plan_id)\nVALUES ('" . addslashes($name) . "', '" . addslashes($email) . "', '" . addslashes($password) . "', '" . addslashes($phone) . "', {$plan_id});\n-- Query OK, 1 row affected\n-- Reflected in MariaDB table `{$db_name}.CUSTOMER`";
+                $executed_sql = "INSERT INTO CUSTOMER (name, email, password, phone_number, plan_id)\nVALUES ('" . addslashes($name) . "', '" . addslashes($email) . "', '" . "••••••••" . "', '" . addslashes($phone) . "', {$plan_id});\n-- Query OK, 1 row affected\n-- Reflected in MariaDB table `{$db_name}.CUSTOMER`";
             } catch (Exception $e) {
                 $message = "Database Insert Error: " . $e->getMessage();
                 $message_type = "danger";
@@ -64,16 +68,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 'customer_id' => $new_id,
                 'name' => $name,
                 'email' => $email,
-                'password' => $password,
                 'phone_number' => $phone,
                 'plan_id' => $plan_id
             ];
             $message = "DEMO MODE: customer #{$new_id} added to temporary demo data only (no database connected).";
             $message_type = "warning";
-            $executed_sql = "INSERT INTO CUSTOMER (name, email, password, phone_number, plan_id)\nVALUES ('" . addslashes($name) . "', '" . addslashes($email) . "', '" . addslashes($password) . "', '" . addslashes($phone) . "', {$plan_id});\n-- DEMO MODE: no database connected, nothing was saved";
+            $executed_sql = "INSERT INTO CUSTOMER (name, email, password, phone_number, plan_id)\nVALUES ('" . addslashes($name) . "', '" . addslashes($email) . "', '" . "••••••••" . "', '" . addslashes($phone) . "', {$plan_id});\n-- DEMO MODE: no database connected, nothing was saved";
         }
     } else {
-        $message = "Please fill in all required fields (Name, Email, Phone Number).";
+        $message = "Please fill in all required fields (Name, Email, Phone Number, Password).";
         $message_type = "danger";
     }
 }
@@ -228,7 +231,7 @@ if ($pdo) {
                     </div>
                     <div class="form-group" style="grid-column: 1 / -1;">
                         <label for="password">Account Password</label>
-                        <input type="password" id="password" name="password" class="form-control" value="SecurePass2026!" required>
+                        <input type="password" id="password" name="password" class="form-control" autocomplete="new-password" required>
                     </div>
                 </div>
             </div>

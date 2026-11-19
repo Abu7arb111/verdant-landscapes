@@ -3,19 +3,35 @@
 CS 4604 Introduction to Database Systems - Phase 2 GUI & Database Engine
 Group 6: Landscaping AI Estimator
 Team Members: Zachary Brosius, Saveer Pande, Benny He, Ahmad Abu Harb
-DBMS Backend: SQLite (Local) / MariaDB Compatible
+DBMS Backend: SQLite demo or MariaDB
 """
 
+import hashlib
 import http.server
 import socketserver
 import json
 import re
+import secrets
 import sqlite3
 import os
 import urllib.parse
+from contextlib import closing
 from datetime import datetime
+from decimal import Decimal
+from html import escape
 
 PORT = int(os.environ.get("PORT", 8080))
+DB_HOST = os.environ.get("DB_HOST")
+DB_PORT = int(os.environ.get("DB_PORT", 3306))
+DB_NAME = os.environ.get("DB_NAME", "landscaping_db")
+DB_ERRORS = (sqlite3.DatabaseError,)
+if DB_HOST:
+    try:
+        import pymysql
+    except ImportError:
+        raise SystemExit("Install the MariaDB driver with pip install -r Phase_3/app/requirements.txt.")
+    DB_ERRORS += (pymysql.MySQLError,)
+
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_FILE = os.path.join(APP_DIR, "landscaping.db")
 SQL_FILE = os.path.join(APP_DIR, "..", "sql", "landscaping_phase2_schema_and_data.sql")
@@ -52,7 +68,38 @@ def init_database():
     conn.close()
 
 
+class MariaDBConnection:
+    def __init__(self):
+        self.connection = pymysql.connect(
+            host=DB_HOST,
+            port=DB_PORT,
+            database=DB_NAME,
+            user=os.environ["DB_USER"],
+            password=os.environ["DB_PASS"],
+            charset="utf8mb4",
+            cursorclass=pymysql.cursors.DictCursor,
+            client_flag=pymysql.constants.CLIENT.FOUND_ROWS,
+            connect_timeout=5,
+        )
+
+    def execute(self, sql, params=()):
+        cursor = self.connection.cursor()
+        if params:
+            cursor.execute(sql.replace("%", "%%").replace("?", "%s"), params)
+        else:
+            cursor.execute(sql)
+        return cursor
+
+    def commit(self):
+        self.connection.commit()
+
+    def close(self):
+        self.connection.close()
+
+
 def get_conn():
+    if DB_HOST:
+        return MariaDBConnection()
     conn = sqlite3.connect(DB_FILE)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON;")
@@ -180,6 +227,16 @@ FK_OPTIONS = {
 }
 
 
+if DB_HOST:
+    FK_OPTIONS.update({
+        "SUBSCRIPTION_PLAN": "SELECT plan_id AS value, CONCAT('Plan ', plan_id, ' - ', plan_name, ' ($', FORMAT(price, 2), '/mo)') AS label FROM SUBSCRIPTION_PLAN ORDER BY plan_id",
+        "AI_ESTIMATE": "SELECT ai_id AS value, CONCAT('Request #', request_id, ' - $', FORMAT(estimated_price, 2)) AS label, estimated_price FROM AI_ESTIMATE ORDER BY ai_id",
+        "CONTRACTOR_QUOTE": "SELECT q.quote_id AS value, CONCAT(c.business_name, ' - $', FORMAT(q.final_price, 2), ' (', q.status, ')') AS label, q.contractor_id, q.final_price FROM CONTRACTOR_QUOTE q JOIN CONTRACTOR c ON c.contractor_id = q.contractor_id ORDER BY q.quote_id",
+        "JOB": "SELECT job_id AS value, CONCAT('Quote #', quote_id, ' - ', status) AS label, revenue FROM JOB ORDER BY job_id",
+        "INVOICE": "SELECT invoice_id AS value, CONCAT('Job #', job_id, ' - $', FORMAT(amount_due, 2), ' (', status, ')') AS label, amount_due FROM INVOICE ORDER BY invoice_id",
+    })
+
+
 # Fixed report queries for the Reports tab. Each shows a different SQL technique.
 REPORTS = [
     {"id": "revenue_by_plan", "title": "Revenue & Profit by Subscription Plan",
@@ -258,16 +315,38 @@ REPORTS_BY_ID = {r["id"]: r for r in REPORTS}
 
 def run_report(report_id):
     report = REPORTS_BY_ID[report_id]
-    conn = get_conn()
-    cur = conn.execute(report["sql"])
-    cols = [d[0] for d in cur.description]
-    rows = [list(r) for r in cur.fetchall()]
-    conn.close()
+    with closing(get_conn()) as conn:
+        cur = conn.execute(report["sql"])
+        cols = [d[0] for d in cur.description]
+        rows = [[r[col] for col in cols] for r in cur.fetchall()]
     return {"status": "success", "columns": cols, "rows": rows,
             "sql": report["sql"] + f";\n-- {len(rows)} row(s) returned", "timestamp": now()}
 
 
 def db_objects():
+    if DB_HOST:
+        with closing(get_conn()) as conn:
+            views = conn.execute("""
+                SELECT 'view' AS type, TABLE_NAME AS name, TABLE_NAME AS tbl_name,
+                       VIEW_DEFINITION AS `sql`
+                FROM information_schema.VIEWS WHERE TABLE_SCHEMA = DATABASE()
+                ORDER BY TABLE_NAME
+            """).fetchall()
+            triggers = conn.execute("""
+                SELECT 'trigger' AS type, TRIGGER_NAME AS name,
+                       EVENT_OBJECT_TABLE AS tbl_name, ACTION_STATEMENT AS `sql`
+                FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE()
+                ORDER BY TRIGGER_NAME
+            """).fetchall()
+            indexes = conn.execute("""
+                SELECT 'index' AS type, INDEX_NAME AS name, TABLE_NAME AS tbl_name,
+                       GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX SEPARATOR ', ') AS `sql`
+                FROM information_schema.STATISTICS
+                WHERE TABLE_SCHEMA = DATABASE() AND INDEX_NAME <> 'PRIMARY'
+                GROUP BY TABLE_NAME, INDEX_NAME
+                ORDER BY INDEX_NAME, TABLE_NAME
+            """).fetchall()
+            return [*views, *triggers, *indexes]
     conn = get_conn()
     rows = conn.execute("""SELECT type, name, tbl_name, sql FROM sqlite_master
                            WHERE type IN ('view', 'trigger', 'index') AND name NOT LIKE 'sqlite_%'
@@ -278,6 +357,15 @@ def db_objects():
 
 class BadInput(ValueError):
     pass
+
+
+def hash_password(password):
+    if not isinstance(password, str) or not password.strip():
+        raise BadInput("Password is required.")
+    salt = secrets.token_bytes(16)
+    iterations = 600_000
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations)
+    return f"pbkdf2-sha256${iterations}${salt.hex()}${digest.hex()}"
 
 
 def coerce(col, raw):
@@ -444,7 +532,7 @@ HTML_PAGE = """<!DOCTYPE html>
         <span style="font-size: 2rem;">🌿</span>
         <div>
             <h1>Landscaping AI Estimator Management Portal</h1>
-            <p>CS 4604 Group 6 &bull; Virginia Tech &bull; MariaDB 10.x / InnoDB &bull; landscaping_db</p>
+            <p>CS 4604 Group 6 &bull; Virginia Tech &bull; __DATABASE_LABEL__</p>
         </div>
     </div>
     <div class="tabs">
@@ -452,11 +540,11 @@ HTML_PAGE = """<!DOCTYPE html>
         <button class="tab-btn" id="tabProp" onclick="switchView('properties')">PROPERTY (Major)</button>
         <button class="tab-btn" id="tabWf" onclick="switchView('workflow')">Project Workflow</button>
         <button class="tab-btn" id="tabRep" onclick="switchView('reports')">Reports</button>
-        <button class="tab-btn" id="tabDb" onclick="switchView('db_view')">Database Query Inspector</button>
+        <button class="tab-btn" id="tabDb" __DEMO_ONLY__ onclick="switchView('db_view')">Database Query Inspector</button>
     </div>
     <div class="status-badge">
         <div class="dot"></div>
-        <span>Connected: <code>mariadb:3306</code></span>
+        <span>Database: <code>__DATABASE_LABEL__</code></span>
     </div>
 </header>
 
@@ -468,11 +556,11 @@ HTML_PAGE = """<!DOCTYPE html>
     <!-- SQL Reflection Box -->
     <div class="sql-box" id="sqlBox">
         <div class="sql-header">
-            <span>MariaDB Live Query Reflection &bull; InnoDB Engine</span>
+            <span>Database Query Log</span>
             <span id="sqlTimestamp">Ready</span>
         </div>
-        <div class="sql-code" id="sqlCode">-- Database connection verified to landscaping_db:3306
-SELECT table_name, table_rows FROM information_schema.tables WHERE table_schema='landscaping_db';</div>
+        <div class="sql-code" id="sqlCode">-- __DATABASE_LABEL__
+Waiting for a database query.</div>
     </div>
 
     <!-- Stats -->
@@ -611,7 +699,7 @@ SELECT table_name, table_rows FROM information_schema.tables WHERE table_schema=
             <div class="card-header">
                 <div>
                     <div class="card-title">Database Objects: Views, Triggers &amp; Indexes</div>
-                    <div class="card-sub">Read from the database catalog (<code>sqlite_master</code>), so this lists what actually exists, not a hardcoded list.</div>
+                    <div class="card-sub">Read from the database catalog.</div>
                 </div>
             </div>
             <div style="overflow-x: auto;" id="dbObjects"></div>
@@ -622,8 +710,8 @@ SELECT table_name, table_rows FROM information_schema.tables WHERE table_schema=
     <div id="viewDatabase" class="card hidden">
         <div class="card-header">
             <div>
-                <div class="card-title">Direct MariaDB SQL Query Console</div>
-                <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">Executing against <code>mariadb:3306/landscaping_db</code></div>
+                <div class="card-title">Demo SQL Query Console</div>
+                <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">Executing against <code>local SQLite</code></div>
             </div>
             <div style="display: flex; gap: 0.6rem;">
                 <button class="btn btn-secondary" onclick="runCustomQuery('SELECT customer_id, name, email, phone_number, plan_id FROM CUSTOMER WHERE customer_id >= 20;')">Check Customer #20 & #21</button>
@@ -670,8 +758,8 @@ SELECT table_name, table_rows FROM information_schema.tables WHERE table_schema=
                 </select>
             </div>
             <div class="form-row" id="custPassRow">
-                <label>Password (Encrypted / Hashed)</label>
-                <input type="password" id="custPass" value="SecurePass2026!">
+                <label>Password</label>
+                <input type="password" id="custPass" autocomplete="new-password" required>
             </div>
         </div>
         <div class="modal-foot">
@@ -753,13 +841,15 @@ let wfRows = [];
 let rowModalTable = null;
 let rowEditId = null;
 let searchTimer = null;
-const CUSTOMER_DEFAULTS = { name: 'Michael Scott', email: 'm.scott@dundermifflin.com', phone: '555-0199', plan: '2', pass: 'SecurePass2026!' };
+const CUSTOMER_DEFAULTS = { name: 'Michael Scott', email: 'm.scott@dundermifflin.com', phone: '555-0199', plan: '2' };
 const PROPERTY_DEFAULTS = { address: '1725 Slough Ave, Scranton, PA', sqft: '8400' };
 
 async function getJson(url, body) {
     const opts = body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
     const res = await fetch(url, opts);
-    return res.json();
+    const data = await res.json();
+    if (!res.ok && body === undefined) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
 }
 
 // ---------- Loading ----------
@@ -810,7 +900,7 @@ async function loadData() {
         await loadProperties(false);
         if (!document.getElementById('viewWorkflow').classList.contains('hidden')) await loadWorkflow(false);
     } catch (e) {
-        console.error(e);
+        showAlert('danger', escapeHtml(e.message));
     }
 }
 
@@ -901,7 +991,7 @@ function openCustomerModal() {
     document.getElementById('custEmail').value = CUSTOMER_DEFAULTS.email;
     document.getElementById('custPhone').value = CUSTOMER_DEFAULTS.phone;
     document.getElementById('custPlan').value = CUSTOMER_DEFAULTS.plan;
-    document.getElementById('custPass').value = CUSTOMER_DEFAULTS.pass;
+    document.getElementById('custPass').value = '';
     document.getElementById('custPassRow').classList.remove('hidden');
     document.getElementById('customerModalTitle').innerText = '➕ Insert New Customer (GUI Form)';
     document.getElementById('customerSubmitBtn').innerText = 'Insert Customer into Database';
@@ -1016,6 +1106,10 @@ async function submitInsertCustomer() {
     const phone = document.getElementById('custPhone').value.trim();
     const plan_id = document.getElementById('custPlan').value;
     const password = document.getElementById('custPass').value;
+    if (!password.trim()) {
+        showAlert('danger', 'Password is required.');
+        return;
+    }
 
     try {
         const data = await getJson('/api/insert_customer', { name, email, phone_number: phone, plan_id, password });
@@ -1329,7 +1423,7 @@ async function runCustomQuery(sql) {
             row.forEach(val => { html += `<td><strong>${escapeHtml(String(val))}</strong></td>`; });
             html += `</tr>`;
         });
-        html += `</tbody></table><div style="padding: 0.75rem 1rem; font-size: 0.85rem; color: #047857; font-weight: 700; background: #ecfdf5; border-top: 1px solid var(--border);">${data.rows.length} rows in set (0.001 sec) &bull; MariaDB 10.x [landscaping_db]</div>`;
+        html += `</tbody></table><div style="padding: 0.75rem 1rem; font-size: 0.85rem; color: #047857; font-weight: 700; background: #ecfdf5; border-top: 1px solid var(--border);">${data.rows.length} row(s) returned</div>`;
         container.innerHTML = html;
     } catch (e) {
         console.error(e);
@@ -1357,6 +1451,7 @@ function escapeHtml(str) {
 // Support preset states via URL parameter
 async function handleUrlState() {
     await loadData();
+    if (__LIVE_MODE__) return;
     const params = new URLSearchParams(window.location.search);
     const state = params.get('state');
 
@@ -1377,13 +1472,13 @@ SELECT table_name, table_rows FROM information_schema.tables WHERE table_schema 
                 email: 'm.scott@dundermifflin.com',
                 phone_number: '555-0199',
                 plan_id: 2,
-                password: 'SecurePass2026!'
+                password: crypto.randomUUID()
             })
         });
         await loadData();
         showAlert('success', '<strong>Record successfully inserted into CUSTOMER!</strong> [Generated PK: CustomerID #21]');
         updateSqlBox(`INSERT INTO CUSTOMER (name, email, password, phone_number, plan_id)
-VALUES ('Michael Scott', 'm.scott@dundermifflin.com', 'SecurePass2026!', '555-0199', 2);
+VALUES ('Michael Scott', 'm.scott@dundermifflin.com', '••••••••', '555-0199', 2);
 -- [MariaDB 10.x Engine] Query OK, 1 row affected (0.001 sec)
 -- Reflected in table: landscaping_db.CUSTOMER | Generated PK: 21
 -- Total tuples in CUSTOMER: 21`);
@@ -1471,17 +1566,17 @@ def list_rows(table, q):
     sql = f"SELECT {', '.join(cols)} FROM {table}"
     params = []
     if q:
+        cast_type = "CHAR" if DB_HOST else "TEXT"
         # Search the columns listed in "search", or every non-FK column by default.
         searched = [c for c in cfg["columns"] if c["name"] in cfg.get("search", [])] or \
                    [c for c in cfg["columns"] if c["type"] != "fk"]
         sql += " WHERE " + " OR ".join(
-            f"CAST({c['name']} AS TEXT) LIKE ?" if c["type"] in ("number", "fk") else f"{c['name']} LIKE ?"
+            f"CAST({c['name']} AS {cast_type}) LIKE ?" if c["type"] in ("number", "fk") else f"{c['name']} LIKE ?"
             for c in searched)
         params = [f"%{q}%"] * len(searched)
     sql += f" ORDER BY {cfg['pk']} ASC"
-    conn = get_conn()
-    rows = [dict(r) for r in conn.execute(sql, params).fetchall()]
-    conn.close()
+    with closing(get_conn()) as conn:
+        rows = [dict(r) for r in conn.execute(sql, params).fetchall()]
     shown = render_sql(sql, params) + f";\n-- {len(rows)} row(s) returned"
     return {"status": "success", "rows": rows, "sql": shown, "timestamp": now()}
 
@@ -1508,12 +1603,14 @@ def write_row(table, action, payload):
     try:
         invoice_id, before = None, None
         if table == "PAYMENT" and action != "delete":
-            invoice_id = values[[c["name"] for c in cols].index("invoice_id")] if any(c["name"] == "invoice_id" for c in cols) \
-                else conn.execute("SELECT invoice_id FROM PAYMENT WHERE payment_id = ?", (payload["id"],)).fetchone()[0]
-            row = conn.execute("SELECT status FROM INVOICE WHERE invoice_id = ?", (invoice_id,)).fetchone()
-            before = row[0] if row else None
+            invoice_id = dict(zip((c["name"] for c in cols), values)).get("invoice_id")
+            if invoice_id is None and action == "update":
+                payment = conn.execute("SELECT invoice_id FROM PAYMENT WHERE payment_id = ?", (int(payload["id"]),)).fetchone()
+                invoice_id = payment["invoice_id"] if payment else None
+            if invoice_id is not None:
+                row = conn.execute("SELECT status FROM INVOICE WHERE invoice_id = ?", (invoice_id,)).fetchone()
+                before = row["status"] if row else None
         cur = conn.execute(sql, params)
-        conn.commit()
         result = {"status": "success", "affected": cur.rowcount, "timestamp": now()}
         if action == "insert":
             result["new_id"] = cur.lastrowid
@@ -1521,14 +1618,15 @@ def write_row(table, action, payload):
             f" | Generated PK {pk} = {cur.lastrowid}" if action == "insert" else "")
         if invoice_id is not None:
             row = conn.execute("SELECT status FROM INVOICE WHERE invoice_id = ?", (invoice_id,)).fetchone()
-            after = row[0] if row else None
+            after = row["status"] if row else None
             if after != before:
                 trigger = f"trg_payment_{action}_mark_paid"
                 note = f"Trigger {trigger} fired: INVOICE #{invoice_id} status '{before}' -> '{after}'."
                 result["trigger_note"] = note
                 result["sql"] += f"\n-- {note}"
+        conn.commit()
         return result
-    except sqlite3.DatabaseError as e:
+    except DB_ERRORS as e:
         return {"status": "error", "error": str(e), "sql": shown + f"\n-- ERROR: {e}", "timestamp": now()}
     finally:
         conn.close()
@@ -1536,34 +1634,48 @@ def write_row(table, action, payload):
 
 class RequestHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
+        if not self.valid_host():
+            return
+        try:
+            self.handle_get()
+        except DB_ERRORS as e:
+            self.send_json({"status": "error", "error": str(e)}, 503)
+
+    def valid_host(self):
+        if not DB_HOST or self.headers.get("Host") in (f"localhost:{PORT}", f"127.0.0.1:{PORT}"):
+            return True
+        self.send_error(403)
+        return False
+
+    def handle_get(self):
         parsed = urllib.parse.urlparse(self.path)
         query = urllib.parse.parse_qs(parsed.query)
         if parsed.path in ["/", "/index.html", "/customers", "/properties"]:
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.end_headers()
-            self.wfile.write(HTML_PAGE.encode("utf-8"))
+            label = f"MariaDB {DB_HOST}:{DB_PORT}/{DB_NAME}" if DB_HOST else "Local SQLite"
+            page = HTML_PAGE.replace("__DATABASE_LABEL__", escape(label))
+            page = page.replace("__LIVE_MODE__", "true" if DB_HOST else "false")
+            page = page.replace("__DEMO_ONLY__", 'style="display:none"' if DB_HOST else "")
+            self.wfile.write(page.encode("utf-8"))
         elif parsed.path == "/api/customers":
-            conn = get_conn()
-            rows = conn.execute("SELECT customer_id, name, email, phone_number, plan_id FROM CUSTOMER ORDER BY customer_id ASC").fetchall()
-            conn.close()
+            with closing(get_conn()) as conn:
+                rows = conn.execute("SELECT customer_id, name, email, phone_number, plan_id FROM CUSTOMER ORDER BY customer_id ASC").fetchall()
             self.send_json([dict(r) for r in rows])
         elif parsed.path == "/api/properties":
-            conn = get_conn()
-            rows = conn.execute("SELECT property_id, address, sqft, customer_id FROM PROPERTY ORDER BY property_id ASC").fetchall()
-            conn.close()
+            with closing(get_conn()) as conn:
+                rows = conn.execute("SELECT property_id, address, sqft, customer_id FROM PROPERTY ORDER BY property_id ASC").fetchall()
             self.send_json([dict(r) for r in rows])
         elif parsed.path == "/api/schema":
             self.send_json(TABLE_CONFIG)
         elif parsed.path == "/api/options":
-            conn = get_conn()
-            data = {t: [dict(r) for r in conn.execute(sql).fetchall()] for t, sql in FK_OPTIONS.items()}
-            conn.close()
+            with closing(get_conn()) as conn:
+                data = {t: [dict(r) for r in conn.execute(sql).fetchall()] for t, sql in FK_OPTIONS.items()}
             self.send_json(data)
         elif parsed.path == "/api/counts":
-            conn = get_conn()
-            data = {t: conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in ALL_TABLES}
-            conn.close()
+            with closing(get_conn()) as conn:
+                data = {t: conn.execute(f"SELECT COUNT(*) AS total FROM {t}").fetchone()["total"] for t in ALL_TABLES}
             self.send_json(data)
         elif parsed.path == "/api/reports":
             self.send_json([{k: r[k] for k in ("id", "title", "description", "tags")} for r in REPORTS])
@@ -1579,16 +1691,21 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             self.end_headers()
 
     def do_POST(self):
+        if not self.valid_host():
+            return
+        if DB_HOST and self.headers.get_content_type() != "application/json":
+            self.send_error(415)
+            return
         parsed = urllib.parse.urlparse(self.path)
         length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(length).decode("utf-8")
-        payload = json.loads(body) if body else {}
         try:
+            payload = json.loads(body) if body else {}
             self.handle_post(parsed.path, payload)
         except (BadInput, KeyError, ValueError) as e:
             msg = str(e) if isinstance(e, BadInput) else f"Invalid input: {e}"
             self.send_json({"status": "error", "error": msg, "sql": f"-- Rejected before reaching the database: {msg}", "timestamp": now()}, 400)
-        except sqlite3.DatabaseError as e:
+        except DB_ERRORS as e:
             self.send_json({"status": "error", "error": str(e), "sql": f"-- ERROR: {e}", "timestamp": now()}, 400)
 
     def handle_post(self, path, payload):
@@ -1598,67 +1715,31 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_json(result, 200 if result["status"] == "success" else 400)
 
         elif path == "/api/insert_customer":
-            conn = get_conn()
-            cur = conn.cursor()
-            cur.execute("""
-                INSERT INTO CUSTOMER (name, email, password, phone_number, plan_id)
-                VALUES (?, ?, ?, ?, ?)
-            """, (payload['name'], payload['email'], payload.get('password', 'secret'), payload['phone_number'], payload['plan_id']))
-            new_id = cur.lastrowid
-            conn.commit()
-            conn.close()
+            params = (payload["name"], payload["email"], hash_password(payload.get("password")),
+                      payload["phone_number"], payload["plan_id"])
+            statement = """INSERT INTO CUSTOMER (name, email, password, phone_number, plan_id)
+VALUES (?, ?, ?, ?, ?)"""
+            with closing(get_conn()) as conn:
+                cursor = conn.execute(statement, params)
+                conn.commit()
+            shown = render_sql(statement, (*params[:2], "••••••••", *params[3:]))
+            self.send_json({"status": "success", "new_id": cursor.lastrowid,
+                            "sql": f"{shown};\n-- Generated PK: {cursor.lastrowid}", "timestamp": now()})
 
-            sql = f"""INSERT INTO CUSTOMER (name, email, password, phone_number, plan_id)
-VALUES ('{payload['name']}', '{payload['email']}', '••••••••', '{payload['phone_number']}', {payload['plan_id']});
--- [MariaDB 10.x Engine] Query OK, 1 row affected (0.001 sec)
--- Reflected in table: `landscaping_db.CUSTOMER` | Generated PK: {new_id}"""
-            self.send_json({"status": "success", "new_id": new_id, "sql": sql, "timestamp": now()})
-
-        elif path == "/api/delete_customer":
-            cid = payload['customer_id']
-            conn = get_conn()
-            cur = conn.cursor()
-            cur.execute("DELETE FROM CUSTOMER WHERE customer_id = ?", (cid,))
-            conn.commit()
-            conn.close()
-
-            sql = f"""DELETE FROM CUSTOMER WHERE customer_id = {cid};
--- [MariaDB 10.x Engine] Query OK, 1 row affected (0.001 sec)
--- ON DELETE CASCADE triggered on foreign keys for customer_id={cid}
--- Reflected in table: `landscaping_db.CUSTOMER`"""
-            self.send_json({"status": "success", "sql": sql, "timestamp": now()})
-
-        elif path == "/api/insert_property":
-            conn = get_conn()
-            cur = conn.cursor()
-            cur.execute("""
-                INSERT INTO PROPERTY (address, sqft, customer_id)
-                VALUES (?, ?, ?)
-            """, (payload['address'], payload['sqft'], payload['customer_id']))
-            new_id = cur.lastrowid
-            conn.commit()
-            conn.close()
-
-            sql = f"""INSERT INTO PROPERTY (address, sqft, customer_id)
-VALUES ('{payload['address']}', {payload['sqft']}, {payload['customer_id']});
--- [MariaDB 10.x Engine] Query OK, 1 row affected
--- Reflected in table: `landscaping_db.PROPERTY` | Generated PK: {new_id}"""
-            self.send_json({"status": "success", "new_id": new_id, "sql": sql, "timestamp": now()})
-
-        elif path == "/api/delete_property":
-            pid = payload['property_id']
-            conn = get_conn()
-            cur = conn.cursor()
-            cur.execute("DELETE FROM PROPERTY WHERE property_id = ?", (pid,))
-            conn.commit()
-            conn.close()
-
-            sql = f"""DELETE FROM PROPERTY WHERE property_id = {pid};
--- [MariaDB 10.x Engine] Query OK, 1 row affected
--- Reflected in table: `landscaping_db.PROPERTY`"""
-            self.send_json({"status": "success", "sql": sql, "timestamp": now()})
+        elif path in ("/api/delete_customer", "/api/insert_property", "/api/delete_property"):
+            table = "CUSTOMER" if path == "/api/delete_customer" else "PROPERTY"
+            if path == "/api/insert_property":
+                action, data = "insert", {"values": payload}
+            else:
+                action, data = "delete", {"id": payload[TABLES[table]["pk"]]}
+            result = write_row(table, action, data)
+            self.send_json(result, 200 if result["status"] == "success" else 400)
 
         elif path == "/api/query":
+            if DB_HOST:
+                msg = "Use phpMyAdmin to run custom SQL against MariaDB."
+                self.send_json({"status": "error", "error": msg, "sql": f"-- {msg}", "timestamp": now()}, 403)
+                return
             raw_sql = payload.get("query", "").strip()
             conn = sqlite3.connect(DB_FILE)
             try:
@@ -1669,7 +1750,7 @@ VALUES ('{payload['address']}', {payload['sqft']}, {payload['customer_id']});
                 conn.close()
                 self.send_json({
                     "status": "success",
-                    "sql": f"{raw_sql}\n-- Query executed successfully against landscaping_db",
+                    "sql": f"{raw_sql}\n-- Query executed successfully against local SQLite",
                     "columns": cols,
                     "rows": rows,
                     "timestamp": now()
@@ -1690,17 +1771,34 @@ VALUES ('{payload['address']}', {payload['sqft']}, {payload['customer_id']});
         self.send_response(code)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
-        self.wfile.write(json.dumps(data).encode("utf-8"))
+        self.wfile.write(json.dumps(data, default=json_value).encode("utf-8"))
 
     def log_message(self, fmt, *args):
         pass
 
 
+def json_value(value):
+    if isinstance(value, Decimal):
+        return float(value)
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
+    raise TypeError(f"Unsupported JSON value: {type(value).__name__}")
+
+
 def run():
-    init_database()
+    if DB_HOST:
+        if not os.environ.get("DB_USER") or "DB_PASS" not in os.environ:
+            raise SystemExit("Set DB_USER and DB_PASS for the MariaDB account.")
+        try:
+            with closing(get_conn()) as conn:
+                conn.execute("SELECT 1 FROM CUSTOMER LIMIT 1")
+        except DB_ERRORS as e:
+            raise SystemExit(f"Could not open the MariaDB database: {e}")
+    elif not os.path.exists(DB_FILE):
+        init_database()
     print(f"Starting CS 4604 Group 6 Landscaping Portal on http://localhost:{PORT}")
     socketserver.TCPServer.allow_reuse_address = True
-    server = socketserver.TCPServer(("", PORT), RequestHandler)
+    server = socketserver.TCPServer(("127.0.0.1", PORT), RequestHandler)
     server.serve_forever()
 
 if __name__ == "__main__":

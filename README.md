@@ -84,6 +84,37 @@ verdant-landscapes/
 
 ---
 
+## Run the local database GUI with CSLaunch
+
+The Phase 3 database GUI runs on your computer and saves changes to the shared MariaDB database on Virginia Tech's Discovery cluster. You need Python 3, `kubectl`, access to the `ai-landscaping-db` namespace, and a MariaDB account with permission to read and edit `landscaping_db`.
+
+1. Sign in to CSLaunch with your own VT account. Download your own Discovery kubeconfig (`discovery.yaml`) and save it as `~/.kube/config`, or use your existing Discovery kubeconfig if it already gives you access to `ai-landscaping-db`. Keep the file private and out of Git. From a terminal, forward the MariaDB service and leave that terminal open. [VT CSLaunch terminal setup](https://wiki.cs.vt.edu/index.php/HowTo%3ACS_Launch_Terminal)
+
+   ```bash
+   kubectl -n ai-landscaping-db port-forward svc/mariadb 3307:3306
+   ```
+
+2. In a second Bash terminal, run these commands from the repository root. If you have the static website running on port 8080, stop it first. Enter your MariaDB username and password when prompted. These credentials are separate from your CSLaunch login, and the password prompt hides your input.
+
+   ```bash
+   python3 -m venv Phase_3/app/.venv
+   Phase_3/app/.venv/bin/python -m pip install -r Phase_3/app/requirements.txt
+
+   export DB_HOST=127.0.0.1 DB_PORT=3307 DB_NAME=landscaping_db
+   read -rp "MariaDB username: " DB_USER
+   read -rsp "MariaDB password: " DB_PASS
+   echo
+   export DB_USER DB_PASS
+
+   Phase_3/app/.venv/bin/python Phase_3/app/server.py
+   ```
+
+3. Open [the local GUI](http://localhost:8080/) and check that the database banner shows **MariaDB** and `landscaping_db`. To see a saved change, use the VT campus network or VPN, open phpMyAdmin, and refresh **Browse** for the edited table. [CSLaunch phpMyAdmin](https://landscapingtool.discovery.cs.vt.edu/)
+
+Keep kubeconfigs and passwords out of Git. The shared database already has its schema, so use it as-is. The seed SQL recreates tables and is for a fresh database only. See the [Phase 3 README](Phase_3/README.md) for the SQLite demo and PHP portal setup.
+
+---
+
 ## 🎓 CS 4604: Database Systems — Phase 2 Deliverables
 
 ### 👥 Group 6 Team Members & Contributions

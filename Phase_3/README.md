@@ -56,23 +56,47 @@ CS4604_Group6_Phase2/
 
 ---
 
-### 🚀 How to Run the GUI Locally (Zero Setup)
-You can run and interact with the full GUI portal directly on your computer:
-1. Open Terminal and navigate to the `app/` directory:
-   ```bash
-   cd ~/Desktop/CS4604_Group6_Phase2/app
-   python3 server.py
-   ```
-2. Open your web browser (Chrome / Safari / Firefox) and visit:
-   ```text
-   http://localhost:8080
-   ```
-3. You can click **"+ Insert New Customer"** to add records, click **"Delete"** on any row to delete records, and use the **"Database Query Inspector"** to execute live SQL queries!
+### Run the GUI against the database in phpMyAdmin
+
+The Python GUI can connect to the existing `landscaping_db` schema on VT Discovery. GUI inserts, updates, and deletes commit directly to that schema. Open [phpMyAdmin](https://landscapingtool.discovery.cs.vt.edu/), select the table, and refresh **Browse** to see the latest rows.
+
+From the repository root, install the driver in a virtual environment:
+
+```bash
+python3 -m venv Phase_3/app/.venv
+Phase_3/app/.venv/bin/python -m pip install -r Phase_3/app/requirements.txt
+```
+
+The HTTPS address opens phpMyAdmin. The Python GUI runs on your computer and connects to the CSLaunch service `mariadb` in namespace `ai-landscaping-db`. On the Discovery cluster dashboard, use **Copy KubeConfig** and save it privately as `~/.kube/config`. See the [VT CSLaunch terminal guide](https://wiki.cs.vt.edu/index.php/HowTo%3ACS_Launch_Terminal) for kubectl setup. Forward the database service in a separate terminal:
+
+```bash
+kubectl -n ai-landscaping-db port-forward svc/mariadb 3307:3306
+```
+
+Leave the port-forward running while you use the GUI.
+
+In another terminal, start the GUI through the tunnel:
+
+```bash
+export DB_HOST=127.0.0.1 DB_PORT=3307 DB_NAME=landscaping_db
+read -rp "MariaDB user: " DB_USER
+read -rsp "MariaDB password: " DB_PASS
+echo
+export DB_USER DB_PASS
+Phase_3/app/.venv/bin/python Phase_3/app/server.py
+```
+
+Open `http://localhost:8080` and check for **MariaDB** in the database banner. The GUI uses the existing schema and does not import or reset it. Use phpMyAdmin for custom SQL.
+
+### Run the local SQLite demo
+
+With the database environment variables unset, run `python3 Phase_3/app/server.py` and open `http://localhost:8080`. Demo edits stay in `Phase_3/app/landscaping.db`.
 
 ---
 
-### 🌐 How to Deploy to VT Discovery Server (`landscapingtool.discovery.cs.vt.edu`)
-1. Import `sql/landscaping_phase2_schema_and_data.sql` into phpMyAdmin (`https://landscapingtool.discovery.cs.vt.edu`).
-2. Upload the contents of the `php/` folder into your web root (`/var/www/html/` or your discovery project directory).
-3. Update `config.php` credentials if your MariaDB user/password differs from default.
+### Configure the PHP portal on CSLaunch
+
+For a PHP portal already running on CSLaunch, set `DB_HOST` to the internal MariaDB service name, `DB_PORT=3306`, and `DB_NAME` to the schema shown in phpMyAdmin. Set `DB_USER` and `DB_PASS` from a CSLaunch Secret. The PHP runtime needs PDO MySQL.
+
+For a fresh database only, import `sql/landscaping_phase2_schema_and_data.sql` into phpMyAdmin.
 
