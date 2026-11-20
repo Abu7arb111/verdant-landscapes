@@ -88,9 +88,31 @@ Phase_3/app/.venv/bin/python Phase_3/app/server.py
 
 Open `http://localhost:8080` and check for **MariaDB** in the database banner. The GUI uses the existing schema and does not import or reset it. Use phpMyAdmin for custom SQL.
 
+**On Windows, one command does both steps.** It starts the port-forward and then the server, and asks for the MariaDB user and password:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File Phase_3\app\start_mariadb.ps1
+```
+
+To skip the user prompt, copy `Phase_3/app/db_config.local.example.json` to `db_config.local.json` and fill in `DB_USER`. That file is git-ignored. Add `DB_PASS` only on a private machine.
+
+If the server has no MariaDB settings, it refuses to start, so website changes can't silently miss phpMyAdmin.
+
 ### Run the local SQLite demo
 
-With the database environment variables unset, run `python3 Phase_3/app/server.py` and open `http://localhost:8080`. Demo edits stay in `Phase_3/app/landscaping.db`.
+Run `python3 Phase_3/app/server.py --demo` and open `http://localhost:8080`. Demo edits stay in `Phase_3/app/landscaping.db` and do **not** appear in phpMyAdmin.
+
+### Role pages
+
+After logging in, each account type lands on its own page. Every action writes to the database, and the page shows the SQL that ran.
+
+| Role | Page | What it can do |
+|------|------|----------------|
+| Administrator | `/` | Full management portal: all tables, workflow, reports |
+| Customer | `/customer` | Add, edit, and delete properties. Submit project requests, which create an `AI_ESTIMATE` row. Accept or reject quotes, book site visits, pay invoices, and edit the profile. |
+| Contractor | `/contractor` | Quote open requests. Edit or withdraw pending quotes. Schedule jobs from accepted quotes, update job status, send invoices, confirm visits, and edit the profile. |
+
+The server takes the account ID from the login session. Each write checks ownership, so customers and contractors can change only their own records.
 
 ---
 
