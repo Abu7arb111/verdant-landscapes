@@ -2,7 +2,7 @@
 -- CS 4604: INTRODUCTION TO DATABASE SYSTEMS
 -- Team 6: Landscaping AI Estimator
 -- Team Members: Zachary Brosius, Saveer Pande, Benny He, Ahmad Abu Harb
--- Phase 2: Relational Schema DDL & 20+ Sample Tuples per Major Table
+-- Schema DDL, 30 sample tuples per entity table, views, triggers and indexes
 -- DBMS: MariaDB / MySQL (InnoDB Engine)
 -- Database: landscaping_db
 -- ==============================================================================
@@ -12,6 +12,7 @@ USE landscaping_db;
 
 -- Drop existing tables in reverse dependency order
 SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS ADMIN;
 DROP TABLE IF EXISTS PAYMENT;
 DROP TABLE IF EXISTS INVOICE;
 DROP TABLE IF EXISTS JOB;
@@ -185,8 +186,22 @@ CREATE TABLE PAYMENT (
         ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+-- 13. ADMIN (application administrators; customers and contractors log in with their own tables)
+-- No admin is seeded. Create the first one with:  py Phase_3/app/server.py create-admin <username>
+-- That admin can change their password and add more admins inside the app.
+CREATE TABLE ADMIN (
+    admin_id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    created_by INT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_admin_creator FOREIGN KEY (created_by)
+        REFERENCES ADMIN(admin_id)
+        ON UPDATE CASCADE ON DELETE SET NULL
+) ENGINE=InnoDB;
+
 -- ==============================================================================
--- POPULATE SAMPLE DATA (At least 20 Tuples per Major Table)
+-- POPULATE SAMPLE DATA (30 Tuples per Entity Table)
 -- ==============================================================================
 
 -- SUBSCRIPTION_PLAN
@@ -448,6 +463,147 @@ INSERT INTO PAYMENT (payment_id, amount, payment_date, status, payment_method, i
 (19, 250.00, '2026-05-19', 'Completed', 'Debit Card', 19),
 (20, 440.00, '2026-05-20', 'Pending', 'Credit Card', 20);
 
+
+-- Additional sample data: rows 21-30 for every entity table (30 tuples each),
+-- with dates from June to December 2026. Quotes 31-34 are competing bids that lost.
+-- Sample customer and contractor passwords are hashes of random values; set a known one
+-- with:  py Phase_3/app/server.py reset-password <customer|contractor> <email>
+
+INSERT INTO CONTRACTOR (contractor_id, business_name, contact_name, email, password, phone_number) VALUES
+(21, 'Ridgeline Hardscapes', 'Oscar Martinez', 'oscar@ridgelinehardscapes.com', 'pbkdf2-sha256$600000$7522f6c900b25f419c4386fce965bbe8$1409cd2d021f2dbc080ff3ec515c9f0a78a2aff5c0aed2bc59a6783e7f52f53c', '757-5521'),
+(22, 'Coastal Greenery', 'Kelly Kapoor', 'kelly@coastalgreenery.com', 'pbkdf2-sha256$600000$56d2f38401b231e290fdc7233ed6de05$bf44af2ba2801e362d46c0dbdd9add18dddb87b148eb9aab98a1f9e5d947cbd6', '757-5522'),
+(23, 'Hampton Roads Turf', 'Toby Flenderson', 'toby@hrturf.com', 'pbkdf2-sha256$600000$13d82ecf71a3b1f1d97769135858616f$64f2d78622e2d5fe163061ec88a2d63aa7a1899bbb769f0982baa3e0d51e1829', '757-5523'),
+(24, 'Tidewater Tree Service', 'Meredith Palmer', 'meredith@tidewatertree.com', 'pbkdf2-sha256$600000$fa1cdbe0f6041b9efa2d471af48d6d78$efff935ba8e252a70fb37e954f9da978b892bcb9a5923abb3c3dbbf57cbd7660', '757-5524'),
+(25, 'Brightpath Lighting & Landscape', 'Creed Bratton', 'creed@brightpathlandscape.com', 'pbkdf2-sha256$600000$f9b246ef8822baf5138804f59cc7f836$226ee3314bdda69b8107d2f524647fe3a3bf204fb0f6f7171b9be3c53e45a15a', '757-5525'),
+(26, 'Chesapeake Irrigation Co.', 'Darryl Philbin', 'darryl@chesapeakeirrigation.com', 'pbkdf2-sha256$600000$2c842a7b7800b99b4cc1d21fb75124e4$16e8f9d0e1a9bd6c97f76c23701c42f79223ba1bd1e9a0865594382ecec62cdd', '757-5526'),
+(27, 'Stonebridge Patios', 'Erin Hannon', 'erin@stonebridgepatios.com', 'pbkdf2-sha256$600000$110341fe98a7d060877de82fc160c441$7cc11b221e56d71c1338ccb04d2a48fef31290b21d67db74922e7f2b7cdac403', '757-5527'),
+(28, 'Bayside Lawn & Garden', 'Gabe Lewis', 'gabe@baysidelawn.com', 'pbkdf2-sha256$600000$dd7ba5ae2c7a0af0ae23bba25be4d851$5ecc6494ee5485308b4c567b1ef4e32144189257791e71f72a2acfec5b490609', '757-5528'),
+(29, 'Fernwood Native Plants', 'Holly Flax', 'holly@fernwoodnative.com', 'pbkdf2-sha256$600000$ffd25358e5306c2db816fb87c32979a3$f6e509bd2410535e8aa705a5003da08b56c85a0ad7390e5d16f908e5e4922591', '757-5529'),
+(30, 'Summit Grading & Drainage', 'Andy Bernard', 'andy@summitgrading.com', 'pbkdf2-sha256$600000$b86c050593e0a59983ef4e2c2ad8e99d$eb2334fd492e17dbf5f89ceb8a40b3008a694dc2a360667bf03389a2781e4b8f', '757-5530');
+
+INSERT INTO CUSTOMER (customer_id, name, email, password, phone_number, plan_id) VALUES
+(21, 'Daniel Young', 'daniel.young@gmail.com', 'pbkdf2-sha256$600000$9f57496424b4e8be9741ba15b0f372ba$37c8f5a84b063d241054cde18b82a74ea2701543e8d0fb1f9d7fff75e5a4e64c', '757-2021', 2),
+(22, 'Olivia King', 'olivia.king@outlook.com', 'pbkdf2-sha256$600000$1dbfeba90152f29b92774a825a722274$3a75f686985f4a430ebb5858993aeac05848eefcfe7c3ff2f0e1de158b7a30bc', '757-2022', 1),
+(23, 'Matthew Wright', 'mwright@yahoo.com', 'pbkdf2-sha256$600000$d0a95a143ab5f4128ac7a7914b814a67$f5edce397a05a3bbf7e7de54490059a8fc53e7db9d52656598e38e6ede6dcf2a', '757-2023', 3),
+(24, 'Sophia Lopez', 'sophia.lopez@gmail.com', 'pbkdf2-sha256$600000$cfa3bc0eb698adce0db981068fb543b6$f30e597c8ce722f80fdc39070b73c92fbfc732780b32985dbd392fc4debc8b1a', '757-2024', 2),
+(25, 'Anthony Hill', 'ahill@outlook.com', 'pbkdf2-sha256$600000$1d1a1509457b74bfce2f5b6d77420a95$97109defc7d497ed81c5335e6fb3114b512dbf704cb769cb1b99f7edb4c0215f', '757-2025', 1),
+(26, 'Isabella Scott', 'isabella.scott@gmail.com', 'pbkdf2-sha256$600000$835d9f491e5c0c365a906073de06cd53$119d4fcf8ad877c1ffa744fbc323a8edcd47fd608f2a533bcce521b037e5f208', '757-2026', 3),
+(27, 'Mark Green', 'mark.green@yahoo.com', 'pbkdf2-sha256$600000$f94f11f714c2033ca1dd8604e38933fe$0c4bd2f3a19f39b92819db92393c83d664fda7ff90a810daf4d7094ee6a0d67d', '757-2027', 2),
+(28, 'Ava Adams', 'ava.adams@gmail.com', 'pbkdf2-sha256$600000$dd7b9a0a50ddfba5913a3892aa666be7$8733ea1ab05125a1cb260e006b59f169e5770b1b22bf30b1fb1ca541ef78c488', '757-2028', 1),
+(29, 'Steven Baker', 'sbaker@outlook.com', 'pbkdf2-sha256$600000$b9acd1d177326a44944436c83d611139$92a4b44346db6c564214777eae2fff6fec349e13d1a6c40a7d48c0f525101572', '757-2029', 3),
+(30, 'Mia Nelson', 'mia.nelson@gmail.com', 'pbkdf2-sha256$600000$14cdc46e6fc42e6550a972d21ffadcfb$8b3e9176850753d7382dc0fdd3e781f16b3a3db40530dc6f7601b29af8db8fe7', '757-2030', 2);
+
+INSERT INTO PROPERTY (property_id, address, sqft, customer_id) VALUES
+(21, '1301 Atlantic Ave, Virginia Beach', 8200, 21),
+(22, '2417 Shore Dr, Virginia Beach', 5600, 22),
+(23, '88 Lynnhaven Pkwy, Virginia Beach', 13400, 23),
+(24, '515 Granby St, Norfolk', 4300, 24),
+(25, '3920 Holland Rd, Virginia Beach', 9700, 25),
+(26, '72 Battlefield Blvd, Chesapeake', 21000, 26),
+(27, '640 Great Neck Rd, Virginia Beach', 11800, 27),
+(28, '1150 Mercury Blvd, Hampton', 6100, 28),
+(29, '27 Kempsville Rd, Norfolk', 7400, 29),
+(30, '905 Princess Anne Rd, Virginia Beach', 15600, 30);
+
+INSERT INTO PROJECT_REQUEST (request_id, description, status, customer_id, property_id) VALUES
+(21, 'Paver patio with built-in fire pit and seating wall.', 'Completed', 21, 21),
+(22, 'Replace front lawn with drought-tolerant native beds.', 'Completed', 22, 22),
+(23, 'Full backyard sod and sprinkler system installation.', 'Completed', 23, 23),
+(24, 'Remove two storm-damaged pines and grind stumps.', 'Completed', 24, 24),
+(25, 'Low-voltage landscape lighting for driveway and garden.', 'In Progress', 25, 25),
+(26, 'Regrade side yard and install French drain to stop pooling.', 'In Progress', 26, 26),
+(27, 'Flagstone walkway from driveway to back gate.', 'Approved', 27, 27),
+(28, 'Raised vegetable garden beds with drip irrigation.', 'Completed', 28, 28),
+(29, 'Fall cleanup, aeration and overseeding.', 'Completed', 29, 29),
+(30, 'Backyard pergola area with gravel patio and plantings.', 'Approved', 30, 30);
+
+INSERT INTO PHOTO (photo_id, file_type, file_url, request_id) VALUES
+(21, 'image/jpeg', 'https://storage.landscapingtool.com/photos/req21_before.jpg', 21),
+(22, 'image/png', 'https://storage.landscapingtool.com/photos/req22_before.png', 22),
+(23, 'image/jpeg', 'https://storage.landscapingtool.com/photos/req23_before.jpg', 23),
+(24, 'image/png', 'https://storage.landscapingtool.com/photos/req24_before.png', 24),
+(25, 'image/jpeg', 'https://storage.landscapingtool.com/photos/req25_before.jpg', 25),
+(26, 'image/png', 'https://storage.landscapingtool.com/photos/req26_before.png', 26),
+(27, 'image/jpeg', 'https://storage.landscapingtool.com/photos/req27_before.jpg', 27),
+(28, 'image/png', 'https://storage.landscapingtool.com/photos/req28_before.png', 28),
+(29, 'image/jpeg', 'https://storage.landscapingtool.com/photos/req29_before.jpg', 29),
+(30, 'image/png', 'https://storage.landscapingtool.com/photos/req30_before.png', 30);
+
+INSERT INTO AI_ESTIMATE (ai_id, estimated_price, estimated_prop_size, ideas_generated, request_id) VALUES
+(21, 6800.00, 8200, 'Herringbone travertine pavers, round fire pit, 18-inch seat wall.', 21),
+(22, 3200.00, 5600, 'Switchgrass, coneflower and black-eyed Susan beds with pine straw.', 22),
+(23, 9400.00, 13400, 'Zoysia sod with a 6-zone smart irrigation controller.', 23),
+(24, 1900.00, 4300, 'Crane-assisted removal of two 60-foot pines plus stump grinding.', 24),
+(25, 2600.00, 9700, '14 warm-white LED path and up-lights on two timer zones.', 25),
+(26, 5200.00, 21000, '120-foot French drain to a pop-up emitter with yard regrading.', 26),
+(27, 3800.00, 11800, 'Irregular bluestone flagstone path with polymeric sand joints.', 27),
+(28, 1400.00, 6100, 'Four cedar raised beds with drip lines on a battery timer.', 28),
+(29, 650.00, 7400, 'Leaf removal, core aeration and tall fescue overseed.', 29),
+(30, 8700.00, 15600, 'Cedar pergola over pea-gravel patio with climbing jasmine.', 30);
+
+INSERT INTO CONTRACTOR_QUOTE (quote_id, scope, final_price, status, contractor_id, ai_id) VALUES
+(21, 'Excavation, base, pavers, fire pit kit and seat wall.', 7150.00, 'Accepted', 21, 21),
+(22, 'Sod removal, soil amendment, native plantings and pine straw.', 2980.00, 'Accepted', 22, 22),
+(23, 'Grading, 6-zone irrigation, Zoysia sod and first mow.', 9900.00, 'Accepted', 23, 23),
+(24, 'Tree removal, stump grinding and debris haul-away.', 2100.00, 'Accepted', 24, 24),
+(25, 'Fixtures, transformer, trenching and timer setup.', 2450.00, 'Accepted', 25, 25),
+(26, 'Regrading, trenching, perforated pipe, gravel and emitter.', 5600.00, 'Accepted', 26, 26),
+(27, 'Base prep, bluestone flagstone and polymeric sand.', 3650.00, 'Accepted', 27, 27),
+(28, 'Four cedar beds, soil fill and drip irrigation kit.', 1350.00, 'Accepted', 28, 28),
+(29, 'Leaf cleanup, core aeration and overseeding.', 620.00, 'Accepted', 29, 29),
+(30, 'Pergola build, gravel patio and border plantings.', 8950.00, 'Accepted', 30, 30),
+(31, 'Alternative bid: excavation, base, pavers, fire pit kit and seat wall.', 7400.00, 'Rejected', 6, 21),
+(32, 'Alternative bid: grading, 6-zone irrigation, Zoysia sod and first mow.', 10400.00, 'Rejected', 15, 23),
+(33, 'Alternative bid: regrading, trenching, perforated pipe, gravel and emitter.', 5900.00, 'Rejected', 8, 26),
+(34, 'Alternative bid: pergola build, gravel patio and border plantings.', 9600.00, 'Rejected', 10, 30);
+
+INSERT INTO APPOINTMENT (appointment_id, scheduled, status, customer_id, contractor_id, request_id) VALUES
+(21, '2026-05-27 09:00:00', 'Completed', 21, 21, 21),
+(22, '2026-06-10 10:30:00', 'Completed', 22, 22, 22),
+(23, '2026-06-29 08:00:00', 'Completed', 23, 23, 23),
+(24, '2026-07-17 13:00:00', 'Completed', 24, 24, 24),
+(25, '2026-08-04 15:00:00', 'Completed', 25, 25, 25),
+(26, '2026-09-01 09:30:00', 'Completed', 26, 26, 26),
+(27, '2026-11-05 11:00:00', 'Confirmed', 27, 27, 27),
+(28, '2026-09-30 14:00:00', 'Completed', 28, 28, 28),
+(29, '2026-10-14 10:00:00', 'Completed', 29, 29, 29),
+(30, '2026-11-11 09:00:00', 'Confirmed', 30, 30, 30);
+
+INSERT INTO JOB (job_id, status, start_date, end_date, revenue, expenses, quote_id, contractor_id) VALUES
+(21, 'Completed', '2026-06-02', '2026-06-09', 7150.00, 4100.00, 21, 21),
+(22, 'Completed', '2026-06-16', '2026-06-19', 2980.00, 1500.00, 22, 22),
+(23, 'Completed', '2026-07-06', '2026-07-14', 9900.00, 6200.00, 23, 23),
+(24, 'Completed', '2026-07-21', '2026-07-22', 2100.00, 900.00, 24, 24),
+(25, 'Completed', '2026-08-10', '2026-08-12', 2450.00, 1100.00, 25, 25),
+(26, 'In Progress', '2026-09-08', NULL, 5600.00, 2800.00, 26, 26),
+(27, 'Scheduled', '2026-11-30', NULL, 3650.00, 1900.00, 27, 27),
+(28, 'Completed', '2026-10-05', '2026-10-07', 1350.00, 600.00, 28, 28),
+(29, 'Completed', '2026-10-19', '2026-10-19', 620.00, 220.00, 29, 29),
+(30, 'Scheduled', '2026-12-07', NULL, 8950.00, 5100.00, 30, 30);
+
+INSERT INTO INVOICE (invoice_id, amount_due, issued, due_date, status, job_id) VALUES
+(21, 7150.00, '2026-06-10', '2026-07-10', 'Paid', 21),
+(22, 2980.00, '2026-06-20', '2026-07-20', 'Paid', 22),
+(23, 9900.00, '2026-07-15', '2026-08-15', 'Paid', 23),
+(24, 2100.00, '2026-07-23', '2026-08-23', 'Paid', 24),
+(25, 2450.00, '2026-08-13', '2026-09-13', 'Pending', 25),
+(26, 5600.00, '2026-09-15', '2026-10-15', 'Issued', 26),
+(27, 3650.00, '2026-11-10', '2026-12-10', 'Issued', 27),
+(28, 1350.00, '2026-10-08', '2026-11-08', 'Paid', 28),
+(29, 620.00, '2026-10-20', '2026-11-19', 'Overdue', 29),
+(30, 8950.00, '2026-11-16', '2026-12-16', 'Issued', 30);
+
+INSERT INTO PAYMENT (payment_id, amount, payment_date, status, payment_method, invoice_id) VALUES
+(21, 7150.00, '2026-06-20', 'Completed', 'Credit Card', 21),
+(22, 2980.00, '2026-07-01', 'Completed', 'Debit Card', 22),
+(23, 9900.00, '2026-07-30', 'Completed', 'Bank Transfer', 23),
+(24, 2100.00, '2026-08-05', 'Completed', 'PayPal', 24),
+(25, 1200.00, '2026-08-25', 'Completed', 'Credit Card', 25),
+(26, 2000.00, '2026-09-28', 'Completed', 'Bank Transfer', 26),
+(27, 3650.00, '2026-11-12', 'Pending', 'Credit Card', 27),
+(28, 1350.00, '2026-10-20', 'Completed', 'Debit Card', 28),
+(29, 300.00, '2026-11-01', 'Failed', 'PayPal', 29),
+(30, 4475.00, '2026-11-18', 'Pending', 'Bank Transfer', 30);
 
 -- ==============================================================================
 -- VIEWS, TRIGGERS & INDEXES
