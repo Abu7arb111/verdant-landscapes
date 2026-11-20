@@ -168,7 +168,7 @@ TABLE_CONFIG = [
          {"name": "phone_number", "label": "Phone Number", "type": "text"},
          {"name": "plan_id", "label": "Subscription Plan", "type": "fk", "ref": "SUBSCRIPTION_PLAN"},
      ]},
-    {"table": "PROPERTY", "pk": "property_id", "singular": "Property", "workflow": False, "search": ["address", "sqft", "customer_id"],
+    {"table": "PROPERTY", "pk": "property_id", "singular": "Property", "workflow": False, "search": ["address", "sqft"],
      "columns": [
          {"name": "address", "label": "Property Address", "type": "text"},
          {"name": "sqft", "label": "Lot Size (Sq Ft)", "type": "number"},
@@ -246,25 +246,26 @@ TABLES = {cfg["table"]: cfg for cfg in TABLE_CONFIG}
 # SELECTs that fill the foreign-key dropdowns. Extra columns (owner, sqft, ...) let the form
 # pre-fill related fields when a parent row is picked.
 FK_OPTIONS = {
-    "SUBSCRIPTION_PLAN": "SELECT plan_id AS value, 'Plan ' || plan_id || ' - ' || plan_name || ' ($' || printf('%.2f', price) || '/mo)' AS label FROM SUBSCRIPTION_PLAN ORDER BY plan_id",
-    "CUSTOMER": "SELECT customer_id AS value, name AS label FROM CUSTOMER ORDER BY customer_id",
-    "CONTRACTOR": "SELECT contractor_id AS value, business_name AS label FROM CONTRACTOR ORDER BY contractor_id",
-    "PROPERTY": "SELECT property_id AS value, address AS label, customer_id AS owner FROM PROPERTY ORDER BY property_id",
-    "PROJECT_REQUEST": "SELECT r.request_id AS value, substr(r.description, 1, 48) AS label, p.sqft AS sqft FROM PROJECT_REQUEST r JOIN PROPERTY p ON p.property_id = r.property_id ORDER BY r.request_id",
-    "AI_ESTIMATE": "SELECT ai_id AS value, 'Request #' || request_id || ' - $' || printf('%.2f', estimated_price) AS label, estimated_price FROM AI_ESTIMATE ORDER BY ai_id",
-    "CONTRACTOR_QUOTE": "SELECT q.quote_id AS value, c.business_name || ' - $' || printf('%.2f', q.final_price) || ' (' || q.status || ')' AS label, q.contractor_id, q.final_price FROM CONTRACTOR_QUOTE q JOIN CONTRACTOR c ON c.contractor_id = q.contractor_id ORDER BY q.quote_id",
-    "JOB": "SELECT job_id AS value, 'Quote #' || quote_id || ' - ' || status AS label, revenue FROM JOB ORDER BY job_id",
-    "INVOICE": "SELECT invoice_id AS value, 'Job #' || job_id || ' - $' || printf('%.2f', amount_due) || ' (' || status || ')' AS label, amount_due FROM INVOICE ORDER BY invoice_id",
+    "SUBSCRIPTION_PLAN": "SELECT plan_id AS value, plan_name || ' ($' || printf('%.2f', price) || '/mo)' AS label FROM SUBSCRIPTION_PLAN ORDER BY plan_id",
+    "CUSTOMER": "SELECT customer_id AS value, name AS label FROM CUSTOMER ORDER BY name",
+    "CONTRACTOR": "SELECT contractor_id AS value, business_name AS label FROM CONTRACTOR ORDER BY business_name",
+    "PROPERTY": "SELECT property_id AS value, address AS label, customer_id AS owner FROM PROPERTY ORDER BY address",
+    "PROJECT_REQUEST": "SELECT r.request_id AS value, c.name || ': ' || substr(r.description, 1, 48) AS label, p.sqft AS sqft FROM PROJECT_REQUEST r JOIN PROPERTY p ON p.property_id = r.property_id JOIN CUSTOMER c ON c.customer_id = r.customer_id ORDER BY c.name, r.request_id",
+    "AI_ESTIMATE": "SELECT e.ai_id AS value, c.name || ': ' || substr(r.description, 1, 40) || ' - $' || printf('%.2f', e.estimated_price) AS label, e.estimated_price FROM AI_ESTIMATE e JOIN PROJECT_REQUEST r ON r.request_id = e.request_id JOIN CUSTOMER c ON c.customer_id = r.customer_id ORDER BY c.name, e.ai_id",
+    "CONTRACTOR_QUOTE": "SELECT q.quote_id AS value, k.business_name || ' for ' || c.name || ' - $' || printf('%.2f', q.final_price) || ' (' || q.status || ')' AS label, q.contractor_id, q.final_price FROM CONTRACTOR_QUOTE q JOIN CONTRACTOR k ON k.contractor_id = q.contractor_id JOIN AI_ESTIMATE e ON e.ai_id = q.ai_id JOIN PROJECT_REQUEST r ON r.request_id = e.request_id JOIN CUSTOMER c ON c.customer_id = r.customer_id ORDER BY k.business_name, q.quote_id",
+    "JOB": "SELECT j.job_id AS value, k.business_name || ' for ' || c.name || ' (' || j.status || ', starts ' || j.start_date || ')' AS label, j.revenue FROM JOB j JOIN CONTRACTOR k ON k.contractor_id = j.contractor_id JOIN CONTRACTOR_QUOTE q ON q.quote_id = j.quote_id JOIN AI_ESTIMATE e ON e.ai_id = q.ai_id JOIN PROJECT_REQUEST r ON r.request_id = e.request_id JOIN CUSTOMER c ON c.customer_id = r.customer_id ORDER BY c.name, j.job_id",
+    "INVOICE": "SELECT i.invoice_id AS value, c.name || ' - $' || printf('%.2f', i.amount_due) || ' due ' || i.due_date || ' (' || i.status || ')' AS label, i.amount_due FROM INVOICE i JOIN JOB j ON j.job_id = i.job_id JOIN CONTRACTOR_QUOTE q ON q.quote_id = j.quote_id JOIN AI_ESTIMATE e ON e.ai_id = q.ai_id JOIN PROJECT_REQUEST r ON r.request_id = e.request_id JOIN CUSTOMER c ON c.customer_id = r.customer_id ORDER BY c.name, i.invoice_id",
 }
 
 
 if DB_HOST:
     FK_OPTIONS.update({
-        "SUBSCRIPTION_PLAN": "SELECT plan_id AS value, CONCAT('Plan ', plan_id, ' - ', plan_name, ' ($', FORMAT(price, 2), '/mo)') AS label FROM SUBSCRIPTION_PLAN ORDER BY plan_id",
-        "AI_ESTIMATE": "SELECT ai_id AS value, CONCAT('Request #', request_id, ' - $', FORMAT(estimated_price, 2)) AS label, estimated_price FROM AI_ESTIMATE ORDER BY ai_id",
-        "CONTRACTOR_QUOTE": "SELECT q.quote_id AS value, CONCAT(c.business_name, ' - $', FORMAT(q.final_price, 2), ' (', q.status, ')') AS label, q.contractor_id, q.final_price FROM CONTRACTOR_QUOTE q JOIN CONTRACTOR c ON c.contractor_id = q.contractor_id ORDER BY q.quote_id",
-        "JOB": "SELECT job_id AS value, CONCAT('Quote #', quote_id, ' - ', status) AS label, revenue FROM JOB ORDER BY job_id",
-        "INVOICE": "SELECT invoice_id AS value, CONCAT('Job #', job_id, ' - $', FORMAT(amount_due, 2), ' (', status, ')') AS label, amount_due FROM INVOICE ORDER BY invoice_id",
+        "SUBSCRIPTION_PLAN": "SELECT plan_id AS value, CONCAT(plan_name, ' ($', FORMAT(price, 2), '/mo)') AS label FROM SUBSCRIPTION_PLAN ORDER BY plan_id",
+        "PROJECT_REQUEST": "SELECT r.request_id AS value, CONCAT(c.name, ': ', SUBSTR(r.description, 1, 48)) AS label, p.sqft AS sqft FROM PROJECT_REQUEST r JOIN PROPERTY p ON p.property_id = r.property_id JOIN CUSTOMER c ON c.customer_id = r.customer_id ORDER BY c.name, r.request_id",
+        "AI_ESTIMATE": "SELECT e.ai_id AS value, CONCAT(c.name, ': ', SUBSTR(r.description, 1, 40), ' - $', FORMAT(e.estimated_price, 2)) AS label, e.estimated_price FROM AI_ESTIMATE e JOIN PROJECT_REQUEST r ON r.request_id = e.request_id JOIN CUSTOMER c ON c.customer_id = r.customer_id ORDER BY c.name, e.ai_id",
+        "CONTRACTOR_QUOTE": "SELECT q.quote_id AS value, CONCAT(k.business_name, ' for ', c.name, ' - $', FORMAT(q.final_price, 2), ' (', q.status, ')') AS label, q.contractor_id, q.final_price FROM CONTRACTOR_QUOTE q JOIN CONTRACTOR k ON k.contractor_id = q.contractor_id JOIN AI_ESTIMATE e ON e.ai_id = q.ai_id JOIN PROJECT_REQUEST r ON r.request_id = e.request_id JOIN CUSTOMER c ON c.customer_id = r.customer_id ORDER BY k.business_name, q.quote_id",
+        "JOB": "SELECT j.job_id AS value, CONCAT(k.business_name, ' for ', c.name, ' (', j.status, ', starts ', j.start_date, ')') AS label, j.revenue FROM JOB j JOIN CONTRACTOR k ON k.contractor_id = j.contractor_id JOIN CONTRACTOR_QUOTE q ON q.quote_id = j.quote_id JOIN AI_ESTIMATE e ON e.ai_id = q.ai_id JOIN PROJECT_REQUEST r ON r.request_id = e.request_id JOIN CUSTOMER c ON c.customer_id = r.customer_id ORDER BY c.name, j.job_id",
+        "INVOICE": "SELECT i.invoice_id AS value, CONCAT(c.name, ' - $', FORMAT(i.amount_due, 2), ' due ', i.due_date, ' (', i.status, ')') AS label, i.amount_due FROM INVOICE i JOIN JOB j ON j.job_id = i.job_id JOIN CONTRACTOR_QUOTE q ON q.quote_id = j.quote_id JOIN AI_ESTIMATE e ON e.ai_id = q.ai_id JOIN PROJECT_REQUEST r ON r.request_id = e.request_id JOIN CUSTOMER c ON c.customer_id = r.customer_id ORDER BY c.name, i.invoice_id",
     })
 
 
@@ -776,6 +777,7 @@ HTML_PAGE = """<!DOCTYPE html>
         .confirm-dialog p { font-size: 0.95rem; color: var(--text); margin-bottom: 1.5rem; line-height: 1.5; }
 
         .hidden { display: none !important; }
+        body:not(.show-sql) .sql-only { display: none !important; }   /* technical details, behind "Show SQL" */
 
         /* Search, edit and workflow additions */
         .card-sub { font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem; }
@@ -840,11 +842,10 @@ HTML_PAGE = """<!DOCTYPE html>
         </div>
     </div>
     <div class="tabs">
-        <button class="tab-btn active" id="tabCust" onclick="switchView('customers')">CUSTOMER (Major)</button>
-        <button class="tab-btn" id="tabProp" onclick="switchView('properties')">PROPERTY (Major)</button>
-        <button class="tab-btn" id="tabWf" onclick="switchView('workflow')">Project Workflow</button>
-        <button class="tab-btn" id="tabRep" onclick="switchView('reports')">Reports</button>
-        <button class="tab-btn" id="tabDb" __DEMO_ONLY__ onclick="switchView('db_view')">Database Query Inspector</button>
+        <button class="tab-btn active" id="tabCust" onclick="switchView('customers')">👥 Customers</button>
+        <button class="tab-btn" id="tabProp" onclick="switchView('properties')">🏡 Properties</button>
+        <button class="tab-btn" id="tabWf" onclick="switchView('workflow')">📋 Projects &amp; Billing</button>
+        <button class="tab-btn" id="tabRep" onclick="switchView('reports')">📊 Reports</button>
     </div>
     <div class="status-badge">
         <div class="dot"></div>
@@ -852,6 +853,7 @@ HTML_PAGE = """<!DOCTYPE html>
     </div>
     <div class="user-chip">
         <span id="chipName"></span><span class="role-badge" id="chipRole"></span>
+        <button class="chip-btn" id="sqlToggle" onclick="toggleSql()">Show SQL</button>
         <button class="chip-btn" onclick="openModalById('pwModal')">Change password</button>
         <button class="chip-btn" id="chipAddAdmin" onclick="openModalById('adminModal')">Add admin</button>
         <button class="chip-btn" onclick="logout()">Log out</button>
@@ -870,7 +872,7 @@ HTML_PAGE = """<!DOCTYPE html>
     <div id="alertBox" class="alert hidden"></div>
 
     <!-- SQL Reflection Box -->
-    <div class="sql-box" id="sqlBox">
+    <div class="sql-box sql-only" id="sqlBox">
         <div class="sql-header">
             <span>Database Query Log</span>
             <span id="sqlTimestamp">Ready</span>
@@ -885,28 +887,28 @@ Waiting for a database query.</div>
             <div class="stat-icon">👥</div>
             <div class="stat-info">
                 <h3 id="statCustomerCount">20</h3>
-                <p>CUSTOMER (Major Table)</p>
+                <p>Customers</p>
             </div>
         </div>
         <div class="stat-card">
             <div class="stat-icon">🏡</div>
             <div class="stat-info">
                 <h3 id="statPropertyCount">20</h3>
-                <p>PROPERTY (Major Table)</p>
+                <p>Properties</p>
             </div>
         </div>
         <div class="stat-card">
             <div class="stat-icon">🚜</div>
             <div class="stat-info">
                 <h3 id="statContractorCount">20</h3>
-                <p>CONTRACTOR Tuples</p>
+                <p>Contractors</p>
             </div>
         </div>
         <div class="stat-card">
             <div class="stat-icon">📋</div>
             <div class="stat-info">
                 <h3 id="statRequestCount">20</h3>
-                <p>PROJECT_REQUEST Tuples</p>
+                <p>Project requests</p>
             </div>
         </div>
     </div>
@@ -915,24 +917,23 @@ Waiting for a database query.</div>
     <div id="viewCustomers" class="card">
         <div class="card-header">
             <div>
-                <div class="card-title">Major Table: <code>CUSTOMER</code></div>
-                <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">Primary Key: <code>customer_id</code> &bull; Foreign Key: <code>plan_id -> SUBSCRIPTION_PLAN(plan_id)</code></div>
+                <div class="card-title">Customers</div>
+                <div class="card-sub">Homeowner accounts and their subscription plans. Search, add, edit or remove a customer.</div>
             </div>
             <div class="header-actions">
                 <input type="search" id="custSearch" class="search-input" placeholder="Search name, email or phone..." oninput="onSearch(loadCustomers)">
-                <button class="btn btn-primary" onclick="openCustomerModal()">+ Insert New Customer</button>
+                <button class="btn btn-primary" onclick="openCustomerModal()">+ Add customer</button>
             </div>
         </div>
         <div style="overflow-x: auto;">
             <table>
                 <thead>
                     <tr>
-                        <th>customer_id (PK)</th>
-                        <th>name</th>
-                        <th>email</th>
-                        <th>phone_number</th>
-                        <th>plan_id (FK)</th>
-                        <th style="text-align: right;">Action</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Subscription plan</th>
+                        <th style="text-align: right;">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="customerTableBody"></tbody>
@@ -944,23 +945,22 @@ Waiting for a database query.</div>
     <div id="viewProperties" class="card hidden">
         <div class="card-header">
             <div>
-                <div class="card-title">Major Table: <code>PROPERTY</code></div>
-                <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">Primary Key: <code>property_id</code> &bull; Foreign Key: <code>customer_id -> CUSTOMER(customer_id) ON DELETE CASCADE</code></div>
+                <div class="card-title">Properties</div>
+                <div class="card-sub">Every property on file and the customer who owns it.</div>
             </div>
             <div class="header-actions">
-                <input type="search" id="propSearch" class="search-input" placeholder="Search address, sq ft or owner ID..." oninput="onSearch(loadProperties)">
-                <button class="btn btn-primary" onclick="openPropertyModal()">+ Insert New Property</button>
+                <input type="search" id="propSearch" class="search-input" placeholder="Search address or lot size..." oninput="onSearch(loadProperties)">
+                <button class="btn btn-primary" onclick="openPropertyModal()">+ Add property</button>
             </div>
         </div>
         <div style="overflow-x: auto;">
             <table>
                 <thead>
                     <tr>
-                        <th>property_id (PK)</th>
-                        <th>address</th>
-                        <th>sqft</th>
-                        <th>customer_id (FK)</th>
-                        <th style="text-align: right;">Action</th>
+                        <th>Address</th>
+                        <th>Lot size</th>
+                        <th>Owner</th>
+                        <th style="text-align: right;">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="propertyTableBody"></tbody>
@@ -973,7 +973,7 @@ Waiting for a database query.</div>
         <div class="card-header">
             <div>
                 <div class="card-title">Project Workflow: Request &rarr; Estimate &rarr; Quote &rarr; Job &rarr; Invoice &rarr; Payment</div>
-                <div class="card-sub">Each step references the one before it through a foreign key. Dropdowns are filled by <code>SELECT</code> queries on the parent table. Use <strong>+ next step</strong> on a row to attach the next record to it.</div>
+                <div class="card-sub">Follow a project from the customer's request to the final payment. Pick a step below, then use the green button on a row to add the next step for it.</div>
             </div>
         </div>
         <div class="wf-steps" id="wfSteps"></div>
@@ -983,7 +983,7 @@ Waiting for a database query.</div>
                 <div class="card-sub" id="wfKeys"></div>
             </div>
             <div class="header-actions">
-                <input type="search" id="wfSearch" class="search-input" placeholder="Search this table..." oninput="onSearch(loadWorkflow)">
+                <input type="search" id="wfSearch" class="search-input" placeholder="Search..." oninput="onSearch(loadWorkflow)">
                 <button class="btn btn-primary" id="wfInsertBtn" onclick="openRowModal(wfTable)">+ Insert</button>
             </div>
         </div>
@@ -995,8 +995,8 @@ Waiting for a database query.</div>
         <div class="card">
             <div class="card-header">
                 <div>
-                    <div class="card-title">Reports: Multi-Table Queries</div>
-                    <div class="card-sub">Each report runs a fixed SQL query against the live database. The exact query appears in the SQL box above.</div>
+                    <div class="card-title">Business reports</div>
+                    <div class="card-sub">Statistics on the whole business. Pick a report to see a chart and the numbers.</div>
                 </div>
             </div>
             <div class="report-grid" id="reportList"></div>
@@ -1012,7 +1012,7 @@ Waiting for a database query.</div>
             <div id="reportChart"></div>
             <div style="overflow-x: auto;" id="reportTable"></div>
         </div>
-        <div class="card">
+        <div class="card sql-only">
             <div class="card-header">
                 <div>
                     <div class="card-title">Database Objects: Views, Triggers &amp; Indexes</div>
@@ -1023,65 +1023,41 @@ Waiting for a database query.</div>
         </div>
     </div>
 
-    <!-- VIEW 3: DATABASE INSPECTOR (phpMyAdmin simulator) -->
-    <div id="viewDatabase" class="card hidden">
-        <div class="card-header">
-            <div>
-                <div class="card-title">Demo SQL Query Console</div>
-                <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">Executing against <code>local SQLite</code></div>
-            </div>
-            <div style="display: flex; gap: 0.6rem;">
-                <button class="btn btn-secondary" onclick="runCustomQuery('SELECT customer_id, name, email, phone_number, plan_id FROM CUSTOMER WHERE customer_id >= 20;')">Check Customer #20 & #21</button>
-                <button class="btn btn-secondary" onclick="runCustomQuery('SELECT * FROM CUSTOMER WHERE customer_id = 21;')">Verify Customer #21 Status</button>
-            </div>
-        </div>
-        <div style="padding: 1.5rem;">
-            <div style="display: flex; gap: 0.75rem; margin-bottom: 1.25rem;">
-                <input type="text" id="customSqlInput" class="form-row" style="flex: 1; padding: 0.7rem 0.9rem; border: 1px solid var(--border); border-radius: 6px; font-family: monospace; font-size: 0.95rem;" value="SELECT * FROM CUSTOMER LIMIT 25;">
-                <button class="btn btn-primary" onclick="runCustomQuery(document.getElementById('customSqlInput').value)">Execute SQL</button>
-            </div>
-            <div id="rawQueryResult" style="overflow-x: auto; max-height: 450px;"></div>
-        </div>
-    </div>
-
 </main>
 
 <!-- INSERT CUSTOMER MODAL -->
 <div class="modal-bg" id="customerModal">
     <div class="modal">
         <div class="modal-head">
-            <h3 id="customerModalTitle" style="font-size: 1.15rem; font-weight: 800; color: var(--primary);">➕ Insert New Customer (GUI Form)</h3>
+            <h3 id="customerModalTitle" style="font-size: 1.15rem; font-weight: 800; color: var(--primary);">➕ Add customer</h3>
             <button onclick="closeCustomerModal()" style="border: none; background: none; font-size: 1.3rem; cursor: pointer; color: var(--text-muted);">✕</button>
         </div>
         <div class="modal-body">
             <div class="form-row">
                 <label>Customer Full Name *</label>
-                <input type="text" id="custName" value="Michael Scott" required>
+                <input type="text" id="custName" required>
             </div>
             <div class="form-row">
                 <label>Email Address *</label>
-                <input type="email" id="custEmail" value="m.scott@dundermifflin.com" required>
+                <input type="email" id="custEmail" required>
             </div>
             <div class="form-row">
                 <label>Phone Number *</label>
-                <input type="tel" id="custPhone" value="555-0199" required>
+                <input type="tel" id="custPhone" required>
             </div>
             <div class="form-row">
-                <label>Subscription Plan (Foreign Key -> SUBSCRIPTION_PLAN)</label>
+                <label>Subscription plan</label>
                 <select id="custPlan">
-                    <option value="1">Plan 1 - Basic Homeowner ($19.99/mo)</option>
-                    <option value="2" selected>Plan 2 - Pro Landscaper ($49.99/mo)</option>
-                    <option value="3">Plan 3 - Enterprise Contractor ($99.99/mo)</option>
                 </select>
             </div>
             <div class="form-row" id="custPassRow">
-                <label>Password</label>
+                <label>Password * (at least 8 characters)</label>
                 <input type="password" id="custPass" autocomplete="new-password" required>
             </div>
         </div>
         <div class="modal-foot">
             <button class="btn btn-secondary" onclick="closeCustomerModal()">Cancel</button>
-            <button class="btn btn-primary" id="customerSubmitBtn" onclick="submitCustomerForm()">Insert Customer into Database</button>
+            <button class="btn btn-primary" id="customerSubmitBtn" onclick="submitCustomerForm()">Add customer</button>
         </div>
     </div>
 </div>
@@ -1090,11 +1066,11 @@ Waiting for a database query.</div>
 <div class="modal-bg" id="deleteConfirmModal">
     <div class="confirm-dialog">
         <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">⚠️</div>
-        <h3>Confirm Tuple Deletion</h3>
-        <p id="deleteConfirmText">Are you sure you want to delete Customer <strong>#21 (Michael Scott)</strong> from the MariaDB database? This will execute <code>DELETE FROM CUSTOMER WHERE customer_id = 21</code> and cascade to any dependent records.</p>
+        <h3>Confirm delete</h3>
+        <p id="deleteConfirmText"></p>
         <div style="display: flex; justify-content: center; gap: 1rem;">
             <button class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
-            <button class="btn btn-danger" style="padding: 0.6rem 1.2rem; font-size: 0.9rem;" onclick="confirmExecuteDelete()">Confirm & Delete Tuple</button>
+            <button class="btn btn-danger" style="padding: 0.6rem 1.2rem; font-size: 0.9rem;" onclick="confirmExecuteDelete()">Delete</button>
         </div>
     </div>
 </div>
@@ -1103,26 +1079,26 @@ Waiting for a database query.</div>
 <div class="modal-bg" id="propertyModal">
     <div class="modal">
         <div class="modal-head">
-            <h3 id="propertyModalTitle" style="font-size: 1.15rem; font-weight: 800; color: var(--primary);">➕ Insert New Property (GUI Form)</h3>
+            <h3 id="propertyModalTitle" style="font-size: 1.15rem; font-weight: 800; color: var(--primary);">➕ Add property</h3>
             <button onclick="closePropertyModal()" style="border: none; background: none; font-size: 1.3rem; cursor: pointer;">✕</button>
         </div>
         <div class="modal-body">
             <div class="form-row">
                 <label>Property Address *</label>
-                <input type="text" id="propAddress" value="1725 Slough Ave, Scranton, PA" required>
+                <input type="text" id="propAddress" required>
             </div>
             <div class="form-row">
                 <label>Lot Size (Sq Ft) *</label>
-                <input type="number" id="propSqft" value="8400" required>
+                <input type="number" id="propSqft" min="1" required>
             </div>
             <div class="form-row">
-                <label>Customer Owner (customer_id FK)</label>
+                <label>Owner</label>
                 <select id="propCustomerId"></select>
             </div>
         </div>
         <div class="modal-foot">
             <button class="btn btn-secondary" onclick="closePropertyModal()">Cancel</button>
-            <button class="btn btn-primary" id="propertySubmitBtn" onclick="submitPropertyForm()">Insert Property into Database</button>
+            <button class="btn btn-primary" id="propertySubmitBtn" onclick="submitPropertyForm()">Add property</button>
         </div>
     </div>
 </div>
@@ -1278,8 +1254,6 @@ let wfRows = [];
 let rowModalTable = null;
 let rowEditId = null;
 let searchTimer = null;
-const CUSTOMER_DEFAULTS = { name: 'Michael Scott', email: 'm.scott@dundermifflin.com', phone: '555-0199', plan: '2' };
-const PROPERTY_DEFAULTS = { address: '1725 Slough Ave, Scranton, PA', sqft: '8400' };
 
 async function getJson(url, body) {
     const opts = body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
@@ -1478,7 +1452,7 @@ async function loadMeta() {
     fkOptions = await getJson('/api/options');
     tableCounts = await getJson('/api/counts');
     fillSelect(document.getElementById('custPlan'), fkOptions.SUBSCRIPTION_PLAN, false);
-    fillSelect(document.getElementById('propCustomerId'), fkOptions.CUSTOMER, true);
+    fillSelect(document.getElementById('propCustomerId'), fkOptions.CUSTOMER, false);
     document.getElementById('statCustomerCount').innerText = tableCounts.CUSTOMER;
     document.getElementById('statPropertyCount').innerText = tableCounts.PROPERTY;
     document.getElementById('statContractorCount').innerText = tableCounts.CONTRACTOR;
@@ -1534,20 +1508,16 @@ function renderCustomers() {
     const tbody = document.getElementById('customerTableBody');
     tbody.innerHTML = '';
     if (!customersData.length) {
-        tbody.innerHTML = '<tr><td colspan="6" class="empty">No customers match this search.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="empty">No customers match this search.</td></tr>';
         return;
     }
     customersData.forEach(c => {
         const tr = document.createElement('tr');
-        if (c.customer_id === 21) {
-            tr.className = 'new-row';
-        }
         tr.innerHTML = `
-            <td><strong>#${c.customer_id}</strong></td>
             <td><strong>${escapeHtml(c.name)}</strong></td>
             <td>${escapeHtml(c.email)}</td>
             <td>${escapeHtml(c.phone_number)}</td>
-            <td><span style="background: #e0f2fe; color: #0369a1; padding: 3px 10px; border-radius: 12px; font-weight: 700; font-size: 0.75rem;">Plan #${c.plan_id}</span></td>
+            <td><span style="background: #e0f2fe; color: #0369a1; padding: 3px 10px; border-radius: 12px; font-weight: 700; font-size: 0.75rem;">${escapeHtml(fkText('SUBSCRIPTION_PLAN', c.plan_id))}</span></td>
             <td class="actions">
                 <button class="btn btn-edit" onclick="editCustomer(${c.customer_id})">Edit</button>
                 <button class="btn btn-danger" onclick="promptDeleteCustomer(${c.customer_id})">Delete</button>
@@ -1561,13 +1531,12 @@ function renderProperties() {
     const tbody = document.getElementById('propertyTableBody');
     tbody.innerHTML = '';
     if (!propertiesData.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="empty">No properties match this search.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="empty">No properties match this search.</td></tr>';
         return;
     }
     propertiesData.forEach(p => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><strong>#${p.property_id}</strong></td>
             <td>${escapeHtml(p.address)}</td>
             <td><strong>${Number(p.sqft).toLocaleString()} sq ft</strong></td>
             <td><span class="fk-pill">${escapeHtml(fkText('CUSTOMER', p.customer_id))}</span></td>
@@ -1582,7 +1551,7 @@ function renderProperties() {
 
 function switchView(view) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    ['viewCustomers', 'viewProperties', 'viewWorkflow', 'viewReports', 'viewDatabase'].forEach(id => document.getElementById(id).classList.add('hidden'));
+    ['viewCustomers', 'viewProperties', 'viewWorkflow', 'viewReports'].forEach(id => document.getElementById(id).classList.add('hidden'));
 
     if (view === 'customers') {
         document.getElementById('tabCust').classList.add('active');
@@ -1598,23 +1567,17 @@ function switchView(view) {
         document.getElementById('tabRep').classList.add('active');
         document.getElementById('viewReports').classList.remove('hidden');
         return loadReports();
-    } else {
-        document.getElementById('tabDb').classList.add('active');
-        document.getElementById('viewDatabase').classList.remove('hidden');
-        runCustomQuery('SELECT customer_id, name, email, phone_number, plan_id FROM CUSTOMER ORDER BY customer_id ASC LIMIT 25;');
     }
 }
 
 function openCustomerModal() {
     customerEditId = null;
-    document.getElementById('custName').value = CUSTOMER_DEFAULTS.name;
-    document.getElementById('custEmail').value = CUSTOMER_DEFAULTS.email;
-    document.getElementById('custPhone').value = CUSTOMER_DEFAULTS.phone;
-    document.getElementById('custPlan').value = CUSTOMER_DEFAULTS.plan;
+    ['custName', 'custEmail', 'custPhone'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('custPlan').selectedIndex = 0;
     document.getElementById('custPass').value = '';
     document.getElementById('custPassRow').classList.remove('hidden');
-    document.getElementById('customerModalTitle').innerText = '➕ Insert New Customer (GUI Form)';
-    document.getElementById('customerSubmitBtn').innerText = 'Insert Customer into Database';
+    document.getElementById('customerModalTitle').innerText = '➕ Add customer';
+    document.getElementById('customerSubmitBtn').innerText = 'Add customer';
     document.getElementById('customerModal').classList.add('active');
 }
 function editCustomer(id) {
@@ -1626,18 +1589,18 @@ function editCustomer(id) {
     document.getElementById('custPhone').value = c.phone_number;
     document.getElementById('custPlan').value = String(c.plan_id);
     document.getElementById('custPassRow').classList.add('hidden');
-    document.getElementById('customerModalTitle').innerText = `✏️ Edit Customer #${id} (UPDATE)`;
-    document.getElementById('customerSubmitBtn').innerText = 'Save Changes to Database';
+    document.getElementById('customerModalTitle').innerText = `✏️ Edit ${c.name}`;
+    document.getElementById('customerSubmitBtn').innerText = 'Save changes';
     document.getElementById('customerModal').classList.add('active');
 }
 function closeCustomerModal() { document.getElementById('customerModal').classList.remove('active'); }
 
 function openPropertyModal() {
     propertyEditId = null;
-    document.getElementById('propAddress').value = PROPERTY_DEFAULTS.address;
-    document.getElementById('propSqft').value = PROPERTY_DEFAULTS.sqft;
-    document.getElementById('propertyModalTitle').innerText = '➕ Insert New Property (GUI Form)';
-    document.getElementById('propertySubmitBtn').innerText = 'Insert Property into Database';
+    document.getElementById('propAddress').value = '';
+    document.getElementById('propSqft').value = '';
+    document.getElementById('propertyModalTitle').innerText = '➕ Add property';
+    document.getElementById('propertySubmitBtn').innerText = 'Add property';
     document.getElementById('propertyModal').classList.add('active');
 }
 function editProperty(id) {
@@ -1647,8 +1610,8 @@ function editProperty(id) {
     document.getElementById('propAddress').value = p.address;
     document.getElementById('propSqft').value = p.sqft;
     document.getElementById('propCustomerId').value = String(p.customer_id);
-    document.getElementById('propertyModalTitle').innerText = `✏️ Edit Property #${id} (UPDATE)`;
-    document.getElementById('propertySubmitBtn').innerText = 'Save Changes to Database';
+    document.getElementById('propertyModalTitle').innerText = `✏️ Edit ${p.address}`;
+    document.getElementById('propertySubmitBtn').innerText = 'Save changes';
     document.getElementById('propertyModal').classList.add('active');
 }
 function closePropertyModal() { document.getElementById('propertyModal').classList.remove('active'); }
@@ -1661,7 +1624,7 @@ function handleWrite(data, successText, closeFn) {
         showAlert('danger', 'Database rejected the change: ' + escapeHtml(data.error));
         return false;
     }
-    if (data.trigger_note) successText += ` <br><span style="font-weight: 500;">⚡ ${escapeHtml(data.trigger_note)}</span>`;
+    if (data.trigger_note) successText += ' <br><span style="font-weight: 500;">⚡ The invoice is now fully paid and was marked Paid automatically.</span>';
     if (data.affected === 0) {
         showAlert('danger', 'No matching row was found, so nothing changed.');
         return false;
@@ -1680,7 +1643,7 @@ function promptDelete(id, name) {
     pendingConfirm = null;
     pendingDeleteId = id;
     pendingDeleteName = name;
-    document.getElementById('deleteConfirmText').innerHTML = `Are you sure you want to delete Customer <strong>#${id} (${escapeHtml(name)})</strong> from table <code>CUSTOMER</code>?<br><br><span style="color: var(--danger); font-size: 0.85rem; font-weight: 600;">Cascade Rule: Any properties or requests referencing customer_id=${id} will also be deleted.</span>`;
+    document.getElementById('deleteConfirmText').innerHTML = `Delete customer <strong>${escapeHtml(name)}</strong>?<br><br><span style="color: var(--danger); font-size: 0.85rem; font-weight: 600;">Their properties, project requests, quotes, jobs, invoices and payments are deleted too.</span>`;
     document.getElementById('deleteConfirmModal').classList.add('active');
 }
 function promptDeleteCustomer(id) {
@@ -1689,9 +1652,9 @@ function promptDeleteCustomer(id) {
 }
 function promptDeleteProperty(id) {
     const p = propertiesData.find(x => x.property_id === id);
-    askConfirm(`Are you sure you want to delete Property <strong>#${id} (${escapeHtml(p ? p.address : '')})</strong> from table <code>PROPERTY</code>?<br><br><span style="color: var(--danger); font-size: 0.85rem; font-weight: 600;">Cascade Rule: Project requests on this property (and everything below them) will also be deleted.</span>`, async () => {
+    askConfirm(`Delete the property at <strong>${escapeHtml(p ? p.address : '')}</strong>?<br><br><span style="color: var(--danger); font-size: 0.85rem; font-weight: 600;">Its project requests and everything that came from them are deleted too.</span>`, async () => {
         const data = await getJson('/api/rows/PROPERTY/delete', { id });
-        handleWrite(data, `🗑️ Property #${id} deleted from PROPERTY.`);
+        handleWrite(data, `🗑️ Property ${escapeHtml(p ? p.address : '')} deleted.`);
         await loadData();
     });
 }
@@ -1710,7 +1673,7 @@ async function confirmExecuteDelete() {
         }
         if (!pendingDeleteId) return;
         const data = await getJson('/api/delete_customer', { customer_id: pendingDeleteId });
-        handleWrite(data, `🗑️ Success: Customer #${pendingDeleteId} (${escapeHtml(pendingDeleteName)}) deleted from CUSTOMER.`);
+        handleWrite(data, `🗑️ Customer ${escapeHtml(pendingDeleteName)} deleted.`);
         await loadData();
     } catch (e) {
         showAlert('danger', 'Error deleting row: ' + e);
@@ -1733,7 +1696,7 @@ async function submitInsertCustomer() {
 
     try {
         const data = await getJson('/api/insert_customer', { name, email, phone_number: phone, plan_id, password });
-        handleWrite(data, `✅ Success: Record successfully inserted into CUSTOMER! [CustomerID: #${data.new_id}]`, closeCustomerModal);
+        handleWrite(data, `✅ Customer ${escapeHtml(name)} added.`, closeCustomerModal);
         await loadData();
     } catch (e) {
         showAlert('danger', 'Error inserting customer: ' + e);
@@ -1750,7 +1713,7 @@ async function submitUpdateCustomer() {
     };
     try {
         const data = await getJson('/api/rows/CUSTOMER/update', { id, values });
-        handleWrite(data, `✏️ Success: Customer #${id} updated in CUSTOMER.`, closeCustomerModal);
+        handleWrite(data, `✏️ Customer ${escapeHtml(values.name)} updated.`, closeCustomerModal);
         await loadData();
     } catch (e) {
         showAlert('danger', 'Error updating customer: ' + e);
@@ -1764,7 +1727,7 @@ async function submitInsertProperty() {
 
     try {
         const data = await getJson('/api/insert_property', { address, sqft, customer_id });
-        handleWrite(data, `✅ Success: Property successfully inserted! [PropertyID: #${data.new_id}]`, closePropertyModal);
+        handleWrite(data, `✅ Property ${escapeHtml(address)} added.`, closePropertyModal);
         await loadData();
     } catch (e) {
         showAlert('danger', 'Error inserting property: ' + e);
@@ -1780,7 +1743,7 @@ async function submitUpdateProperty() {
     };
     try {
         const data = await getJson('/api/rows/PROPERTY/update', { id, values });
-        handleWrite(data, `✏️ Success: Property #${id} updated in PROPERTY.`, closePropertyModal);
+        handleWrite(data, `✏️ Property ${escapeHtml(values.address)} updated.`, closePropertyModal);
         await loadData();
     } catch (e) {
         showAlert('danger', 'Error updating property: ' + e);
@@ -1803,12 +1766,13 @@ function renderReportList() {
     document.getElementById('reportList').innerHTML = reportList.map(r => `
         <button class="report-card ${r.id === currentReport ? 'active' : ''}" onclick="runReport('${r.id}')">
             <strong>${escapeHtml(r.title)}</strong>
-            ${r.tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}
+            <span class="sql-only">${r.tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}</span>
+            <span class="card-sub" style="display:block">${escapeHtml(r.description)}</span>
         </button>`).join('');
 }
 
 function fmtReportCell(col, v) {
-    if (v === null || v === undefined) return '<span class="muted">NULL</span>';
+    if (v === null || v === undefined) return '<span class="muted">—</span>';
     if (typeof v === 'number' && col.endsWith('_pct')) return `${v > 0 && col.startsWith('gap') ? '+' : ''}${v.toFixed(1)}%`;
     if (typeof v === 'number' && MONEY_COLS.test(col)) return (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     if (col.endsWith('status')) return `<span class="status-pill status-${String(v).toLowerCase().replace(/[^a-z]+/g, '-')}">${escapeHtml(v)}</span>`;
@@ -1831,7 +1795,7 @@ async function runReport(id) {
     document.getElementById('reportTotal').innerHTML = totalCol
         ? `<strong>${fmtReportCell(totalCol, data.rows.reduce((s, r) => s + Number(r[moneyIdx] || 0), 0))}</strong>total ${escapeHtml(totalCol.replace(/^total_/, '').replace(/_/g, ' '))} &bull; ${data.rows.length} rows`
         : `<strong>${data.rows.length}</strong>rows`;
-    let html = '<table><thead><tr>' + data.columns.map(c => `<th>${escapeHtml(c)}</th>`).join('') + '</tr></thead><tbody>';
+    let html = '<table><thead><tr>' + data.columns.map(c => `<th>${escapeHtml(prettyCol(c))}</th>`).join('') + '</tr></thead><tbody>';
     if (!data.rows.length) html += `<tr><td colspan="${data.columns.length}" class="empty">No rows returned.</td></tr>`;
     data.rows.forEach(row => {
         html += '<tr>' + row.map((v, i) => `<td>${fmtReportCell(data.columns[i], v)}</td>`).join('') + '</tr>';
@@ -1871,10 +1835,10 @@ function tcfg(table) { return schema.find(s => s.table === table); }
 function fkText(ref, v) {
     if (v === null || v === undefined || v === '') return '-';
     const o = (fkOptions[ref] || []).find(o => String(o.value) === String(v));
-    return o ? `#${v} · ${o.label}` : `#${v}`;
+    return o ? o.label : '(removed)';
 }
 function fmtCell(col, v) {
-    if (v === null || v === undefined || v === '') return '<span class="muted">NULL</span>';
+    if (v === null || v === undefined || v === '') return '<span class="muted">—</span>';
     if (col.type === 'fk') return `<span class="fk-pill">${escapeHtml(fkText(col.ref, v))}</span>`;
     if (col.money) return '$' + Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     if (col.name === 'status') return `<span class="status-pill status-${String(v).toLowerCase().replace(/[^a-z]+/g, '-')}">${escapeHtml(v)}</span>`;
@@ -1885,9 +1849,9 @@ function fmtCell(col, v) {
 function renderWfSteps() {
     const steps = schema.filter(s => s.workflow);
     document.getElementById('wfSteps').innerHTML = steps.map((s, i) => `
-        <button class="wf-step ${s.table === wfTable ? 'active' : ''}" title="${s.table}" onclick="selectWfTable('${s.table}')">
+        <button class="wf-step ${s.table === wfTable ? 'active' : ''}" onclick="selectWfTable('${s.table}')">
             <span style="font-size: 1.2rem;">${s.icon}</span>
-            <span><strong>${s.label}</strong><small>${tableCounts[s.table] ?? 0} rows</small></span>
+            <span><strong>${s.label}</strong><small>${tableCounts[s.table] ?? 0} on file</small></span>
         </button>${i < steps.length - 1 ? '<span class="wf-arrow">&rarr;</span>' : ''}`).join('');
 }
 
@@ -1909,19 +1873,18 @@ function renderWorkflow() {
     const cfg = tcfg(wfTable);
     if (!cfg) return;
     renderWfSteps();
-    document.getElementById('wfTitle').innerHTML = `Table: <code>${cfg.table}</code>`;
-    document.getElementById('wfKeys').innerHTML = `Primary Key: <code>${cfg.pk}</code>` +
-        cfg.columns.filter(c => c.type === 'fk').map(c => ` &bull; Foreign Key: <code>${c.name} -> ${c.ref}</code>`).join('');
-    document.getElementById('wfInsertBtn').innerText = `+ Insert New ${cfg.singular}`;
+    document.getElementById('wfTitle').innerHTML = `${cfg.icon} ${escapeHtml(cfg.label)}`;
+    document.getElementById('wfKeys').innerHTML = escapeHtml(WF_HELP[cfg.table] || '');
+    document.getElementById('wfInsertBtn').innerText = `+ Add ${cfg.singular.toLowerCase()}`;
     const next = cfg.next ? tcfg(cfg.next.table) : null;
 
-    let html = `<table><thead><tr><th>${cfg.pk} (PK)</th>` +
-        cfg.columns.map(c => `<th>${c.name}${c.type === 'fk' ? ' (FK)' : ''}</th>`).join('') +
-        '<th style="text-align: right;">Action</th></tr></thead><tbody>';
-    if (!wfRows.length) html += `<tr><td colspan="${cfg.columns.length + 2}" class="empty">No rows match this search.</td></tr>`;
+    let html = '<table><thead><tr>' +
+        cfg.columns.map(c => `<th>${escapeHtml(c.label.replace(' ($)', ''))}</th>`).join('') +
+        '<th style="text-align: right;">Actions</th></tr></thead><tbody>';
+    if (!wfRows.length) html += `<tr><td colspan="${cfg.columns.length + 1}" class="empty">Nothing matches this search.</td></tr>`;
     wfRows.forEach(r => {
         const id = r[cfg.pk];
-        html += `<tr><td><strong>#${id}</strong></td>` +
+        html += '<tr>' +
             cfg.columns.map(c => `<td>${fmtCell(c, r[c.name])}</td>`).join('') +
             `<td class="actions">` +
             (next ? `<button class="btn btn-next" onclick="nextStep(${id})">+ ${next.singular}</button>` : '') +
@@ -1937,8 +1900,8 @@ function openRowModal(table, id, prefill) {
     rowModalTable = table;
     rowEditId = (id === undefined || id === null) ? null : id;
     const row = rowEditId !== null ? wfRows.find(r => r[cfg.pk] === rowEditId) : null;
-    document.getElementById('rowModalTitle').innerText = row ? `✏️ Edit ${cfg.singular} #${rowEditId} (UPDATE)` : `➕ Insert New ${cfg.singular}`;
-    document.getElementById('rowSubmitBtn').innerText = row ? 'Save Changes to Database' : `Insert ${cfg.singular} into Database`;
+    document.getElementById('rowModalTitle').innerText = row ? `✏️ Edit ${cfg.singular.toLowerCase()}` : `➕ Add ${cfg.singular.toLowerCase()}`;
+    document.getElementById('rowSubmitBtn').innerText = row ? 'Save changes' : `Add ${cfg.singular.toLowerCase()}`;
 
     const body = document.getElementById('rowModalBody');
     body.innerHTML = '';
@@ -1946,12 +1909,12 @@ function openRowModal(table, id, prefill) {
         const wrap = document.createElement('div');
         wrap.className = 'form-row';
         const label = document.createElement('label');
-        label.textContent = col.label + (col.type === 'fk' ? ` (FK -> ${col.ref})` : '') + (col.nullable ? ' (optional)' : ' *');
+        label.textContent = col.label + (col.nullable ? ' (optional)' : ' *');
         let input;
         if (col.type === 'fk' || col.type === 'select') {
             input = document.createElement('select');
             const opts = col.type === 'fk'
-                ? (fkOptions[col.ref] || []).map(o => ({ value: o.value, text: `#${o.value} - ${o.label}` }))
+                ? (fkOptions[col.ref] || []).map(o => ({ value: o.value, text: o.label }))
                 : col.options.map(o => ({ value: o, text: o }));
             opts.forEach(o => {
                 const opt = document.createElement('option');
@@ -2009,9 +1972,7 @@ async function submitRowForm() {
     const isEdit = rowEditId !== null;
     try {
         const data = await getJson(`/api/rows/${cfg.table}/${isEdit ? 'update' : 'insert'}`, isEdit ? { id: rowEditId, values } : { values });
-        handleWrite(data, isEdit
-            ? `✏️ Success: ${cfg.singular} #${rowEditId} updated in ${cfg.table}.`
-            : `✅ Success: ${cfg.singular} inserted into ${cfg.table}! [${cfg.pk}: #${data.new_id}]`, closeRowModal);
+        handleWrite(data, isEdit ? `✏️ ${cfg.singular} updated.` : `✅ ${cfg.singular} added.`, closeRowModal);
         wfTable = cfg.table;
         await loadData();
     } catch (e) {
@@ -2029,43 +1990,11 @@ async function nextStep(id) {
 
 function promptDeleteRow(table, id) {
     const cfg = tcfg(table);
-    askConfirm(`Are you sure you want to delete ${cfg.singular} <strong>#${id}</strong> from table <code>${table}</code>?<br><br><span style="color: var(--danger); font-size: 0.85rem; font-weight: 600;">Cascade Rule: this also deletes ${cfg.cascade}.</span>`, async () => {
+    askConfirm(`Delete this ${cfg.singular.toLowerCase()}?<br><br><span style="color: var(--danger); font-size: 0.85rem; font-weight: 600;">This also deletes ${cfg.cascade}.</span>`, async () => {
         const data = await getJson(`/api/rows/${table}/delete`, { id });
-        handleWrite(data, `🗑️ ${cfg.singular} #${id} deleted from ${table}.`);
+        handleWrite(data, `🗑️ ${cfg.singular} deleted.`);
         await loadData();
     });
-}
-
-async function runCustomQuery(sql) {
-    document.getElementById('customSqlInput').value = sql;
-    try {
-        const res = await fetch('/api/query', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: sql })
-        });
-        const data = await res.json();
-        updateSqlBox(data.sql, data.timestamp);
-
-        const container = document.getElementById('rawQueryResult');
-        if (data.error) {
-            container.innerHTML = `<div class="alert alert-danger">${escapeHtml(data.error)}</div>`;
-            return;
-        }
-
-        let html = `<table><thead><tr>`;
-        data.columns.forEach(col => { html += `<th>${escapeHtml(col)}</th>`; });
-        html += `</tr></thead><tbody>`;
-        data.rows.forEach(row => {
-            html += `<tr>`;
-            row.forEach(val => { html += `<td><strong>${escapeHtml(String(val))}</strong></td>`; });
-            html += `</tr>`;
-        });
-        html += `</tbody></table><div style="padding: 0.75rem 1rem; font-size: 0.85rem; color: #047857; font-weight: 700; background: #ecfdf5; border-top: 1px solid var(--border);">${data.rows.length} row(s) returned</div>`;
-        container.innerHTML = html;
-    } catch (e) {
-        console.error(e);
-    }
 }
 
 function showAlert(type, text) {
@@ -2086,110 +2015,28 @@ function escapeHtml(str) {
     return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-// Support preset states via URL parameter
 async function handleUrlState() {
+    try { if (localStorage.getItem('adminShowSql') === '1') toggleSql(); } catch (e) {}
     await loadData();
-    if (__LIVE_MODE__) return;
-    const params = new URLSearchParams(window.location.search);
-    const state = params.get('state');
-
-    if (state === 'initial') {
-        updateSqlBox(`-- MariaDB 10.x Database Connection Established
--- Host: landscapingtool.discovery.cs.vt.edu:3306 | Database: landscaping_db
-SELECT table_name, table_rows FROM information_schema.tables WHERE table_schema = 'landscaping_db';
--- Ready for Phase 2 GUI Operations: 20 tuples loaded in major table CUSTOMER.`);
-    } else if (state === 'insert_modal') {
-        openCustomerModal();
-    } else if (state === 'insert_success') {
-        // Trigger insert of Michael Scott
-        await fetch('/api/insert_customer', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                name: 'Michael Scott',
-                email: 'm.scott@dundermifflin.com',
-                phone_number: '555-0199',
-                plan_id: 2,
-                password: crypto.randomUUID()
-            })
-        });
-        await loadData();
-        showAlert('success', '<strong>Record successfully inserted into CUSTOMER!</strong> [Generated PK: CustomerID #21]');
-        updateSqlBox(`INSERT INTO CUSTOMER (name, email, password, phone_number, plan_id)
-VALUES ('Michael Scott', 'm.scott@dundermifflin.com', '••••••••', '555-0199', 2);
--- [MariaDB 10.x Engine] Query OK, 1 row affected (0.001 sec)
--- Reflected in table: landscaping_db.CUSTOMER | Generated PK: 21
--- Total tuples in CUSTOMER: 21`);
-        window.scrollTo({ top: 600, behavior: 'smooth' });
-    } else if (state === 'insert_db') {
-        switchView('db_view');
-        runCustomQuery('SELECT customer_id, name, email, phone_number, plan_id FROM CUSTOMER WHERE customer_id >= 20 ORDER BY customer_id ASC;');
-    } else if (state === 'delete_confirm') {
-        promptDelete(21, 'Michael Scott');
-    } else if (state === 'delete_success') {
-        await fetch('/api/delete_customer', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ customer_id: 21 })
-        });
-        await loadData();
-        showAlert('success', '<strong>Record successfully deleted from CUSTOMER!</strong> Customer #21 (Michael Scott) removed from MariaDB.');
-        updateSqlBox(`DELETE FROM CUSTOMER WHERE customer_id = 21;
--- [MariaDB 10.x Engine] Query OK, 1 row affected (0.001 sec)
--- ON DELETE CASCADE triggered on foreign keys for customer_id=21
--- Reflected in table: landscaping_db.CUSTOMER
--- Remaining tuples in CUSTOMER: 20`);
-        window.scrollTo({ top: 600, behavior: 'smooth' });
-    } else if (state === 'delete_db') {
-        switchView('db_view');
-        runCustomQuery('SELECT * FROM CUSTOMER WHERE customer_id = 21;');
-    } else if (state === 'update_search') {
-        // Search CUSTOMER, then UPDATE customer #3 through the same code path as the Edit form
-        document.getElementById('custSearch').value = 'outlook';
-        await loadCustomers(false);
-        editCustomer(3);
-        document.getElementById('custPhone').value = '555-2003';
-        document.getElementById('custPlan').value = '2';
-        await submitUpdateCustomer();
-    } else if (state === 'workflow_insert') {
-        // INSERT a PROJECT_REQUEST picked from the property dropdown, then search for it
-        await switchView('workflow');
-        openRowModal('PROJECT_REQUEST');
-        document.getElementById('rf_property_id').value = '4';
-        document.getElementById('rf_property_id').dispatchEvent(new Event('change'));
-        document.getElementById('rf_description').value = 'Install paver walkway and LED path lighting.';
-        await submitRowForm();
-        document.getElementById('wfSearch').value = 'paver';
-        await loadWorkflow(false);
-    } else if (state === 'workflow_next') {
-        // "+ AI Estimate" on request #6 opens the estimate form with its FK pre-selected
-        await switchView('workflow');
-        await nextStep(6);
-        document.getElementById('rf_estimated_price').value = '3800.00';
-        document.getElementById('rf_ideas_generated').value = 'Tumbled travertine pavers with a gravel border and two low-voltage accent lights.';
-    } else if (state === 'report') {
-        currentReport = params.get('id') || 'revenue_by_plan';
-        await switchView('reports');
-    } else if (state === 'db_objects') {
-        currentReport = 'outstanding_invoices';
-        await switchView('reports');
-    } else if (state === 'trigger_demo') {
-        // Mark payment #2 Completed -> trigger sets INVOICE #2 to 'Paid'
-        await switchView('workflow');
-        await selectWfTable('PAYMENT');
-        openRowModal('PAYMENT', 2);
-        document.getElementById('rf_status').value = 'Completed';
-        await submitRowForm();
-        wfTable = 'INVOICE';
-        document.getElementById('wfSearch').value = '340';
-        await loadWorkflow(false);
-    } else if (state === 'properties') {
-        switchView('properties');
-        updateSqlBox(`-- Major Table PROPERTY Selected
-SELECT property_id, address, sqft, customer_id FROM PROPERTY ORDER BY property_id ASC LIMIT 20;
--- Foreign Key: customer_id REFERENCES CUSTOMER(customer_id) ON DELETE CASCADE`);
-    }
 }
+
+// Technical details (SQL log, report SQL tags, database objects) stay hidden unless asked for.
+function toggleSql() {
+    const on = document.body.classList.toggle('show-sql');
+    document.getElementById('sqlToggle').textContent = on ? 'Hide SQL' : 'Show SQL';
+    try { localStorage.setItem('adminShowSql', on ? '1' : '0'); } catch (e) {}
+}
+
+const WF_HELP = {
+    PROJECT_REQUEST: 'Work customers asked for on one of their properties.',
+    AI_ESTIMATE: 'Automatic price estimates for each request.',
+    CONTRACTOR_QUOTE: 'Prices contractors offered on an estimate. The customer accepts one.',
+    JOB: 'Work scheduled from an accepted quote.',
+    INVOICE: 'Bills sent to customers for their jobs.',
+    PAYMENT: 'Money received against an invoice.',
+};
+const COL_WORDS = { avg: 'Average', min: 'Lowest', max: 'Highest', pct: '%', sqft: 'Sq Ft', ai: 'AI' };
+const prettyCol = c => c.split('_').map(w => COL_WORDS[w] || (w.charAt(0).toUpperCase() + w.slice(1))).join(' ');
 
 window.onload = authInit;
 </script>
@@ -2786,7 +2633,7 @@ def customer_data(uid):
                              JOIN CONTRACTOR k       ON k.contractor_id = j.contractor_id
                              WHERE r.customer_id = ? ORDER BY j.job_id DESC""", (uid,)),
             "invoices": t.all(f"""SELECT i.invoice_id, i.job_id, i.amount_due, i.issued, i.due_date, i.status,
-                                         k.business_name, {PAID} AS amount_paid
+                                         k.business_name, r.description, {PAID} AS amount_paid
                                   FROM INVOICE i
                                   JOIN JOB j              ON j.job_id = i.job_id
                                   JOIN CONTRACTOR_QUOTE q ON q.quote_id = j.quote_id
@@ -2794,7 +2641,7 @@ def customer_data(uid):
                                   JOIN PROJECT_REQUEST r  ON r.request_id = e.request_id
                                   JOIN CONTRACTOR k       ON k.contractor_id = j.contractor_id
                                   WHERE r.customer_id = ? ORDER BY i.invoice_id DESC""", (uid,)),
-            "payments": t.all("""SELECT pm.payment_id, pm.invoice_id, pm.amount, pm.payment_date, pm.payment_method, pm.status
+            "payments": t.all("""SELECT pm.payment_id, pm.invoice_id, pm.amount, pm.payment_date, pm.payment_method, pm.status, r.description
                                  FROM PAYMENT pm
                                  JOIN INVOICE i          ON i.invoice_id = pm.invoice_id
                                  JOIN JOB j              ON j.job_id = i.job_id
@@ -2851,7 +2698,7 @@ def contractor_data(uid):
                              JOIN CUSTOMER c         ON c.customer_id = r.customer_id
                              WHERE j.contractor_id = ? ORDER BY j.job_id DESC""", (uid,)),
             "invoices": t.all(f"""SELECT i.invoice_id, i.job_id, i.amount_due, i.issued, i.due_date, i.status,
-                                         c.name AS customer_name, {PAID} AS amount_paid
+                                         c.name AS customer_name, r.description, {PAID} AS amount_paid
                                   FROM INVOICE i
                                   JOIN JOB j              ON j.job_id = i.job_id
                                   JOIN CONTRACTOR_QUOTE q ON q.quote_id = j.quote_id
@@ -2905,7 +2752,7 @@ def customer_action(t, uid, action, p):
         price, ideas = auto_estimate(desc, int(prop["sqft"]))
         t.run("INSERT INTO AI_ESTIMATE (estimated_price, estimated_prop_size, ideas_generated, request_id) VALUES (?, ?, ?, ?)",
               (price, int(prop["sqft"]), ideas, cur.lastrowid))
-        return f"Request #{cur.lastrowid} submitted. Estimated price: ${price:,.2f}. Contractors can now send quotes."
+        return f"Request submitted. Estimated price: ${price:,.2f}. Contractors can now send quotes."
 
     if action == "cancel_request":
         t.run("""DELETE FROM PROJECT_REQUEST WHERE request_id = ? AND customer_id = ? AND status = 'Pending'
@@ -3008,7 +2855,7 @@ def contractor_action(t, uid, action, p):
             raise BadInput("You already quoted this request, or the customer already accepted a quote.")
         cur = t.run("INSERT INTO CONTRACTOR_QUOTE (scope, final_price, status, contractor_id, ai_id) VALUES (?, ?, 'Pending', ?, ?)",
                     (clean(p, "scope", "Scope of work", 2000), num(p, "final_price", "Price", money=True, allow_zero=False), uid, est["ai_id"]))
-        return f"Quote #{cur.lastrowid} sent to the customer."
+        return "Quote sent to the customer."
 
     if action == "update_quote":
         t.run("UPDATE CONTRACTOR_QUOTE SET scope = ?, final_price = ? WHERE quote_id = ? AND contractor_id = ? AND status = 'Pending'",
@@ -3033,7 +2880,7 @@ def contractor_action(t, uid, action, p):
                     (date_field(p, "start_date", "Start date"), float(q["final_price"]),
                      num(p, "expenses", "Expected expenses", money=True), q["quote_id"], uid))
         t.run("UPDATE PROJECT_REQUEST SET status = 'In Progress' WHERE request_id = ?", (q["request_id"],))
-        return f"Job #{cur.lastrowid} scheduled."
+        return "Job scheduled."
 
     if action == "update_job":
         job = t.one("""SELECT j.job_id, j.start_date, e.request_id FROM JOB j
@@ -3053,7 +2900,7 @@ def contractor_action(t, uid, action, p):
               (status, end, num(p, "expenses", "Expenses", money=True), job["job_id"], uid))
         req_status = {"Scheduled": "In Progress", "In Progress": "In Progress", "Completed": "Completed", "Cancelled": "Approved"}[status]
         t.run("UPDATE PROJECT_REQUEST SET status = ? WHERE request_id = ?", (req_status, job["request_id"]))
-        return f"Job #{job['job_id']} updated."
+        return f"Job marked {status}."
 
     if action == "create_invoice":
         job = t.one("""SELECT job_id, revenue, (SELECT COUNT(*) FROM INVOICE i WHERE i.job_id = JOB.job_id) AS invoices
@@ -3067,7 +2914,7 @@ def contractor_action(t, uid, action, p):
             raise BadInput("The due date cannot be in the past.")
         cur = t.run("INSERT INTO INVOICE (amount_due, issued, due_date, status, job_id) VALUES (?, ?, ?, 'Issued', ?)",
                     (num(p, "amount_due", "Amount due", money=True, allow_zero=False), today(), due, job["job_id"]))
-        return f"Invoice #{cur.lastrowid} sent to the customer."
+        return "Invoice sent to the customer."
 
     if action == "update_appointment":
         status = choice(p, "status", "Status", ["Confirmed", "Completed", "Cancelled"])
@@ -3318,34 +3165,6 @@ VALUES (?, ?, ?, ?, ?)"""
             result = write_row(table, action, data)
             self.send_json(result, 200 if result["status"] == "success" else 400)
 
-        elif path == "/api/query":
-            if DB_HOST:
-                msg = "Use phpMyAdmin to run custom SQL against MariaDB."
-                self.send_json({"status": "error", "error": msg, "sql": f"-- {msg}", "timestamp": now()}, 403)
-                return
-            raw_sql = payload.get("query", "").strip()
-            conn = sqlite3.connect(DB_FILE)
-            try:
-                cur = conn.cursor()
-                cur.execute(raw_sql)
-                cols = [d[0] for d in cur.description] if cur.description else []
-                rows = cur.fetchall()
-                conn.close()
-                self.send_json({
-                    "status": "success",
-                    "sql": f"{raw_sql}\n-- Query executed successfully against local SQLite",
-                    "columns": cols,
-                    "rows": rows,
-                    "timestamp": now()
-                })
-            except Exception as e:
-                conn.close()
-                self.send_json({
-                    "status": "error",
-                    "error": str(e),
-                    "sql": f"{raw_sql}\n-- ERROR: {str(e)}",
-                    "timestamp": now()
-                })
         else:
             self.send_response(404)
             self.end_headers()

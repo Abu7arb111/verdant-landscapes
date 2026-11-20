@@ -76,6 +76,7 @@
     .form-error { background: #fef2f2; border-left: 4px solid var(--danger); color: #7f1d1d; padding: 0.6rem 0.8rem; border-radius: 6px; font-weight: 600; font-size: 0.88rem; }
     .x-btn { border: none; background: none; font-size: 1.3rem; cursor: pointer; color: var(--text-muted); }
     .hidden { display: none !important; }
+    body:not(.show-sql) .sql-only { display: none !important; }
     .profile { padding: 1.4rem 1.5rem; display: grid; grid-template-columns: 160px 1fr; gap: 0.6rem 1rem; font-size: 0.92rem; }
     .profile dt { color: var(--text-muted); font-weight: 700; }
     .report-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.7rem; padding: 1rem 1.5rem; }
@@ -105,6 +106,7 @@
     </div>
     <div class="user-chip">
         <span id="chipName"></span><span class="role-badge">__ROLE__</span>
+        <button class="chip-btn" id="sqlToggle" onclick="toggleSql()">Show SQL</button>
         <button class="chip-btn" onclick="openPassword()">Change password</button>
         <button class="chip-btn" onclick="logout()">Log out</button>
     </div>
@@ -114,7 +116,7 @@
 
 <main class="container">
     <div id="alertBox" class="alert hidden"></div>
-    <div class="sql-box">
+    <div class="sql-box sql-only">
         <div class="sql-header"><span>Database activity (last query)</span><span id="sqlTime">Ready</span></div>
         <div class="sql-code" id="sqlCode">-- Every action on this page is written to the database. The SQL that ran will appear here.</div>
     </div>
@@ -268,7 +270,7 @@ function render() {
 
 // ---------- reports (shared by both roles) ----------
 const R = { list: null, current: null, data: null };
-const REPORTS_TAB = { label: '📊 My Reports', render: () => card('My reports', 'Statistics about your own data. Pick a report.', '',
+const REPORTS_TAB = { label: '📊 My Reports', render: () => card('My reports', 'Statistics about your own activity. Pick a report to see a chart and the numbers.', '',
     `<div class="report-grid">${(R.list || []).map(r => `<button class="report-card${r.id === R.current ? ' active' : ''}" onclick="showReport('${r.id}')"><strong>${esc(r.title)}</strong><span class="small">${esc(r.description)}</span></button>`).join('') || '<div class="small">Loading…</div>'}</div>`) +
     `<div class="card" id="reportCard"><div class="card-header"><div><div class="card-title" id="reportTitle">Loading…</div><div class="card-sub" id="reportDesc"></div></div></div><div id="reportBody"></div></div>` };
 
@@ -318,12 +320,15 @@ function go(id) { tab = id; try { localStorage.setItem('portalTab_' + ROLE, id);
 const pendingQuotes = () => (D.quotes || []).filter(q => q.status === 'Pending');
 const unpaidInvoices = () => (D.invoices || []).filter(i => balance(i) > 0);
 
+const short = (s, n = 60) => { s = String(s ?? ''); return s.length > n ? s.slice(0, n - 1) + '…' : s; };
+const projectCell = (desc, address) => `${esc(short(desc))}${address ? `<div class="small">${esc(address)}</div>` : ''}`;
+
 const CUSTOMER_TABS = {
     home: { label: 'Overview', render: () => {
         const owed = unpaidInvoices().reduce((s, i) => s + balance(i), 0);
         const todos = [
-            ...pendingQuotes().map(q => [`Quote from <strong>${esc(q.business_name)}</strong> for request #${q.request_id}: ${money(q.final_price)}`, btn('Review', 'btn-go', `go("requests")`)]),
-            ...unpaidInvoices().map(i => [`Invoice #${i.invoice_id} from <strong>${esc(i.business_name)}</strong>: ${money(balance(i))} due ${day(i.due_date)}`, btn('Pay', 'btn-primary', call('payInvoice', i.invoice_id))]),
+            ...pendingQuotes().map(q => [`Quote from <strong>${esc(q.business_name)}</strong> for “${esc(short(q.description, 45))}”: ${money(q.final_price)}`, btn('Review', 'btn-go', `go("requests")`)]),
+            ...unpaidInvoices().map(i => [`Invoice from <strong>${esc(i.business_name)}</strong> for “${esc(short(i.description, 45))}”: ${money(balance(i))} due ${day(i.due_date)}`, btn('Pay', 'btn-primary', call('payInvoice', i.invoice_id))]),
         ];
         if (!D.properties.length) todos.unshift(['Add your first property to request landscaping work.', btn('+ Property', 'btn-primary', 'addProperty()')]);
         return `<div class="stat-grid">
@@ -334,52 +339,52 @@ const CUSTOMER_TABS = {
         </div>` + card('Needs your attention', '', btn('+ New project request', 'btn-primary', 'newRequest()'),
             `<div class="todo">${todos.length ? todos.map(([t, b]) => `<div class="todo-item"><div>${t}</div><div>${b}</div></div>`).join('') : '<div class="small">Nothing to do right now.</div>'}</div>`);
     }},
-    properties: { label: 'My Properties', render: () => card('My properties', 'Stored in <code>PROPERTY</code> with your customer_id.', btn('+ Add property', 'btn-primary', 'addProperty()'),
-        table(['ID', 'Address', '$Lot size', '$Requests', ''], D.properties, p => `<tr>
-            <td>#${p.property_id}</td><td>${esc(p.address)}</td><td class="num">${Number(p.sqft).toLocaleString()} sq ft</td><td class="num">${p.requests}</td>
+    properties: { label: 'My Properties', render: () => card('My properties', 'The places you want landscaping work done.', btn('+ Add property', 'btn-primary', 'addProperty()'),
+        table(['Address', '$Lot size', '$Requests', ''], D.properties, p => `<tr>
+            <td>${esc(p.address)}</td><td class="num">${Number(p.sqft).toLocaleString()} sq ft</td><td class="num">${p.requests}</td>
             <td class="actions">${btn('Request work', 'btn-go', call('newRequest', p.property_id))}${btn('Edit', 'btn-edit', call('editProperty', p.property_id))}${btn('Delete', 'btn-danger', call('deleteProperty', p.property_id))}</td></tr>`,
             'You have no properties yet.')) },
     requests: { label: 'Requests & Quotes', badge: () => pendingQuotes().length, render: () =>
-        card('Project requests', 'Each request gets an automatic estimate (<code>AI_ESTIMATE</code>); contractors then send quotes.', btn('+ New request', 'btn-primary', 'newRequest()'),
-            table(['ID', 'Property', 'Description', '$Estimate', '$Quotes', 'Status', ''], D.requests, r => `<tr>
-                <td>#${r.request_id}</td><td>${esc(r.address)}</td>
+        card('Project requests', 'Each request gets an automatic price estimate. Contractors then send you quotes.', btn('+ New request', 'btn-primary', 'newRequest()'),
+            table(['Project', 'Property', '$Estimate', '$Quotes', 'Status', ''], D.requests, r => `<tr>
                 <td>${esc(r.description)}${r.ideas_generated ? `<div class="small" style="margin-top:4px">💡 ${esc(r.ideas_generated)}</div>` : ''}</td>
+                <td>${esc(r.address)}</td>
                 <td class="num">${money(r.estimated_price)}</td><td class="num">${r.quotes}</td><td>${pill(r.status)}</td>
                 <td class="actions">${r.status === 'Pending' ? btn('Cancel', 'btn-danger', call('cancelRequest', r.request_id)) : ''}</td></tr>`,
                 'No requests yet.')) +
-        card('Quotes from contractors', 'Accepting a quote updates <code>CONTRACTOR_QUOTE</code> and <code>PROJECT_REQUEST</code>.', '',
-            table(['Quote', 'Request', 'Contractor', 'Scope', '$Estimate', '$Quote', 'Status', ''], D.quotes, q => `<tr>
-                <td>#${q.quote_id}</td><td>#${q.request_id}</td>
+        card('Quotes from contractors', 'Accept the quote you like. The other pending quotes for that project are declined.', '',
+            table(['Project', 'Contractor', 'Scope', '$Estimate', '$Quote', 'Status', ''], D.quotes, q => `<tr>
+                <td>${esc(short(q.description))}</td>
                 <td><strong>${esc(q.business_name)}</strong><div class="small">${esc(q.contact_name)} · ${esc(q.phone_number)}</div></td>
                 <td>${esc(q.scope)}</td><td class="num">${money(q.estimated_price)}</td><td class="num"><strong>${money(q.final_price)}</strong></td><td>${pill(q.status)}</td>
                 <td class="actions">${q.status === 'Pending' ? btn('Accept', 'btn-primary', call('acceptQuote', q.quote_id)) + btn('Reject', 'btn-danger', call('rejectQuote', q.quote_id)) : ''}
                     ${q.status !== 'Rejected' ? btn('Book visit', 'btn-edit', call('bookVisit', q.request_id, q.contractor_id)) : ''}</td></tr>`,
                 'No quotes yet. Contractors see your pending requests and can quote on them.')) +
-        card('Jobs', 'Created by the contractor after you accept a quote.', '',
-            table(['Job', 'Request', 'Contractor', 'Start', 'End', '$Price', 'Status'], D.jobs, j => `<tr>
-                <td>#${j.job_id}</td><td>#${j.request_id} <span class="small">${esc(j.address)}</span></td><td>${esc(j.business_name)}</td>
+        card('Jobs', 'Scheduled by the contractor after you accept a quote.', '',
+            table(['Project', 'Contractor', 'Start', 'End', '$Price', 'Status'], D.jobs, j => `<tr>
+                <td>${projectCell(j.description, j.address)}</td><td>${esc(j.business_name)}</td>
                 <td>${day(j.start_date)}</td><td>${day(j.end_date)}</td><td class="num">${money(j.revenue)}</td><td>${pill(j.status)}</td></tr>`,
                 'No jobs yet.')) },
-    visits: { label: 'Visits', render: () => card('Site visits', 'Rows in <code>APPOINTMENT</code>. Book one from a quote on the Requests tab.', '',
-        table(['ID', 'When', 'Contractor', 'Request', 'Status', ''], D.appointments, a => `<tr>
-            <td>#${a.appointment_id}</td><td>${when(a.scheduled)}</td><td>${esc(a.business_name)}<div class="small">${esc(a.phone_number)}</div></td>
-            <td>#${a.request_id} <span class="small">${esc(a.description)}</span></td><td>${pill(a.status)}</td>
+    visits: { label: 'Visits', render: () => card('Site visits', 'Book a visit from a quote on the Requests & Quotes tab.', '',
+        table(['When', 'Contractor', 'Project', 'Status', ''], D.appointments, a => `<tr>
+            <td>${when(a.scheduled)}</td><td>${esc(a.business_name)}<div class="small">${esc(a.phone_number)}</div></td>
+            <td>${esc(short(a.description))}</td><td>${pill(a.status)}</td>
             <td class="actions">${['Pending', 'Confirmed', 'Scheduled'].includes(a.status) ? btn('Cancel', 'btn-danger', call('cancelVisit', a.appointment_id)) : ''}</td></tr>`,
             'No visits booked.')) },
     billing: { label: 'Billing', badge: () => unpaidInvoices().length, render: () =>
-        card('Invoices', 'Paying inserts a row into <code>PAYMENT</code>; the trigger marks the invoice Paid once it is covered.', '',
-            table(['Invoice', 'Contractor', 'Issued', 'Due', '$Amount', '$Paid', '$Balance', 'Status', ''], D.invoices, i => `<tr>
-                <td>#${i.invoice_id}</td><td>${esc(i.business_name)} <span class="small">job #${i.job_id}</span></td><td>${day(i.issued)}</td><td>${day(i.due_date)}</td>
+        card('Invoices', 'An invoice is marked Paid automatically once your payments cover it.', '',
+            table(['Project', 'Contractor', 'Issued', 'Due', '$Amount', '$Paid', '$Balance', 'Status', ''], D.invoices, i => `<tr>
+                <td>${esc(short(i.description))}</td><td>${esc(i.business_name)}</td><td>${day(i.issued)}</td><td>${day(i.due_date)}</td>
                 <td class="num">${money(i.amount_due)}</td><td class="num">${money(i.amount_paid)}</td><td class="num"><strong>${money(balance(i))}</strong></td><td>${pill(i.status)}</td>
                 <td class="actions">${balance(i) > 0 ? btn('Pay', 'btn-primary', call('payInvoice', i.invoice_id)) : ''}</td></tr>`,
                 'No invoices.')) +
         card('Payment history', '', '',
-            table(['Payment', 'Invoice', 'Date', 'Method', '$Amount', 'Status'], D.payments, p => `<tr>
-                <td>#${p.payment_id}</td><td>#${p.invoice_id}</td><td>${day(p.payment_date)}</td><td>${esc(p.payment_method)}</td><td class="num">${money(p.amount)}</td><td>${pill(p.status)}</td></tr>`,
+            table(['Date', 'Project', 'Method', '$Amount', 'Status'], D.payments, p => `<tr>
+                <td>${day(p.payment_date)}</td><td>${esc(short(p.description))}</td><td>${esc(p.payment_method)}</td><td class="num">${money(p.amount)}</td><td>${pill(p.status)}</td></tr>`,
                 'No payments yet.')) },
     reports: REPORTS_TAB,
-    profile: { label: 'Profile', render: () => card('My profile', 'Your row in <code>CUSTOMER</code>.', btn('Edit profile', 'btn-edit', 'editCustomerProfile()'),
-        `<dl class="profile"><dt>Customer ID</dt><dd>#${D.me.customer_id}</dd><dt>Name</dt><dd>${esc(D.me.name)}</dd><dt>Email (login)</dt><dd>${esc(D.me.email)}</dd>
+    profile: { label: 'Profile', render: () => card('My profile', 'Your account details.', btn('Edit profile', 'btn-edit', 'editCustomerProfile()'),
+        `<dl class="profile"><dt>Name</dt><dd>${esc(D.me.name)}</dd><dt>Email (login)</dt><dd>${esc(D.me.email)}</dd>
          <dt>Phone</dt><dd>${esc(D.me.phone_number)}</dd><dt>Plan</dt><dd>${D.me.plan_name ? esc(D.me.plan_name) + ' (' + money(D.me.price) + '/mo)' : '—'}</dd></dl>`) },
 };
 
@@ -391,26 +396,29 @@ function addProperty() {
 }
 function editProperty(id) {
     const p = D.properties.find(x => x.property_id === id);
-    openForm('Edit property #' + id, [
+    openForm('Edit ' + p.address, [
         { name: 'address', label: 'Address', value: p.address },
         { name: 'sqft', label: 'Lot size (sq ft)', type: 'number', min: 1, value: p.sqft },
     ], 'Save changes', 'update_property', { id });
 }
 function deleteProperty(id) {
-    act('delete_property', { id }, `Delete property #${id}? Its project requests, quotes, jobs and invoices are deleted too.`);
+    const p = D.properties.find(x => x.property_id === id);
+    act('delete_property', { id }, `Delete ${p.address}? Its project requests, quotes, jobs and invoices are deleted too.`);
 }
 function newRequest(propertyId) {
     if (!D.properties.length) { showAlert('danger', 'Add a property first.'); go('properties'); return; }
     openForm('New project request', [
         { name: 'property_id', label: 'Property', type: 'select', value: propertyId,
-          options: D.properties.map(p => ({ value: p.property_id, label: `#${p.property_id} - ${p.address} (${Number(p.sqft).toLocaleString()} sq ft)` })) },
+          options: D.properties.map(p => ({ value: p.property_id, label: `${p.address} (${Number(p.sqft).toLocaleString()} sq ft)` })) },
         { name: 'description', label: 'What would you like done?', type: 'textarea', value: '',
           hint: 'Mention things like sod, patio, irrigation, trees, mulch or maintenance. An estimate is generated from this.' },
     ], 'Submit request', 'create_request');
 }
-function cancelRequest(id) { act('cancel_request', { id }, `Cancel request #${id}? It and any pending quotes will be deleted.`); }
-function acceptQuote(id) { act('accept_quote', { id }, `Accept quote #${id}? Other pending quotes for this request will be declined.`); }
-function rejectQuote(id) { act('reject_quote', { id }, `Reject quote #${id}?`); }
+const requestName = id => short((D.requests.find(r => r.request_id === id) || {}).description, 50);
+const quoteName = id => { const q = D.quotes.find(x => x.quote_id === id) || {}; return `${q.business_name}'s ${money(q.final_price)} quote`; };
+function cancelRequest(id) { act('cancel_request', { id }, `Cancel “${requestName(id)}”? It and any pending quotes will be deleted.`); }
+function acceptQuote(id) { act('accept_quote', { id }, `Accept ${quoteName(id)}? Other pending quotes for this project will be declined.`); }
+function rejectQuote(id) { act('reject_quote', { id }, `Reject ${quoteName(id)}?`); }
 function bookVisit(requestId, contractorId) {
     const q = D.quotes.find(x => x.request_id === requestId && x.contractor_id === contractorId);
     const d = new Date(Date.now() + 3 * 864e5); d.setHours(10, 0, 0, 0);
@@ -419,10 +427,13 @@ function bookVisit(requestId, contractorId) {
         { name: 'scheduled', label: 'Date and time', type: 'datetime-local', value: local },
     ], 'Request visit', 'book_appointment', { request_id: requestId, contractor_id: contractorId });
 }
-function cancelVisit(id) { act('cancel_appointment', { id }, `Cancel visit #${id}?`); }
+function cancelVisit(id) {
+    const a = D.appointments.find(x => x.appointment_id === id);
+    act('cancel_appointment', { id }, `Cancel the visit with ${a.business_name} on ${when(a.scheduled)}?`);
+}
 function payInvoice(id) {
     const i = D.invoices.find(x => x.invoice_id === id);
-    openForm(`Pay invoice #${id}`, [
+    openForm(`Pay ${i.business_name}`, [
         { name: 'amount', label: `Amount (balance ${money(balance(i))})`, type: 'number', step: '0.01', min: 0.01, value: balance(i).toFixed(2) },
         { name: 'payment_method', label: 'Payment method', type: 'select', value: 'Credit Card',
           options: ['Credit Card', 'Debit Card', 'Bank Transfer', 'PayPal'].map(m => ({ value: m, label: m })) },
@@ -449,9 +460,9 @@ const CONTRACTOR_TABS = {
         const earned = D.invoices.reduce((s, i) => s + Number(i.amount_paid), 0);
         const outstanding = D.invoices.reduce((s, i) => s + Math.max(0, balance(i)), 0);
         const todos = [
-            ...acceptedNoJob().map(q => [`Quote #${q.quote_id} accepted by <strong>${esc(q.customer_name)}</strong> (${money(q.final_price)})`, btn('Schedule job', 'btn-primary', call('startJob', q.quote_id))]),
+            ...acceptedNoJob().map(q => [`<strong>${esc(q.customer_name)}</strong> accepted your ${money(q.final_price)} quote for “${esc(short(q.description, 45))}”`, btn('Schedule job', 'btn-primary', call('startJob', q.quote_id))]),
             ...newVisits().map(a => [`Visit request from <strong>${esc(a.customer_name)}</strong> on ${when(a.scheduled)}`, btn('Confirm', 'btn-primary', call('setVisit', a.appointment_id, 'Confirmed'))]),
-            ...jobsNoInvoice().map(j => [`Job #${j.job_id} for ${esc(j.customer_name)} is completed but not invoiced`, btn('Invoice', 'btn-primary', call('createInvoice', j.job_id))]),
+            ...jobsNoInvoice().map(j => [`The job for <strong>${esc(j.customer_name)}</strong> at ${esc(j.address)} is completed but not invoiced`, btn('Invoice', 'btn-primary', call('createInvoice', j.job_id))]),
         ];
         return `<div class="stat-grid">
             <div class="stat"><h3>${D.open_requests.length}</h3><p>Requests open for quotes</p></div>
@@ -461,65 +472,68 @@ const CONTRACTOR_TABS = {
         </div>` + card('Needs your attention', '', btn('Browse open requests', 'btn-primary', 'go("open")'),
             `<div class="todo">${todos.length ? todos.map(([t, b]) => `<div class="todo-item"><div>${t}</div><div>${b}</div></div>`).join('') : '<div class="small">Nothing to do right now.</div>'}</div>`);
     }},
-    open: { label: 'Open Requests', badge: () => D.open_requests.length, render: () => card('Requests open for quotes', 'Pending customer requests you have not quoted yet.', '',
-        table(['Request', 'Customer', 'Property', 'Description', '$AI estimate', '$Quotes', ''], D.open_requests, r => `<tr>
-            <td>#${r.request_id}</td><td>${esc(r.customer_name)}</td><td>${esc(r.address)}<div class="small">${Number(r.sqft).toLocaleString()} sq ft</div></td>
+    open: { label: 'Open Requests', badge: () => D.open_requests.length, render: () => card('Requests open for quotes', 'Customer projects you have not quoted yet.', '',
+        table(['Customer', 'Property', 'Project', '$Estimate', '$Quotes', ''], D.open_requests, r => `<tr>
+            <td>${esc(r.customer_name)}</td><td>${esc(r.address)}<div class="small">${Number(r.sqft).toLocaleString()} sq ft</div></td>
             <td>${esc(r.description)}<div class="small" style="margin-top:4px">💡 ${esc(r.ideas_generated)}</div></td>
             <td class="num">${money(r.estimated_price)}</td><td class="num">${r.quotes}</td>
             <td class="actions">${btn('Send quote', 'btn-primary', call('sendQuote', r.ai_id))}</td></tr>`,
             'No open requests right now.')) },
-    quotes: { label: 'My Quotes', render: () => card('My quotes', 'Rows in <code>CONTRACTOR_QUOTE</code> with your contractor_id.', '',
-        table(['Quote', 'Request', 'Customer', 'Scope', '$Estimate', '$My price', 'Status', ''], D.quotes, q => `<tr>
-            <td>#${q.quote_id}</td><td>#${q.request_id} <div class="small">${esc(q.address)}</div></td>
+    quotes: { label: 'My Quotes', render: () => card('My quotes', 'Quotes you sent. You can edit or withdraw one until the customer decides.', '',
+        table(['Project', 'Customer', 'Scope', '$Estimate', '$My price', 'Status', ''], D.quotes, q => `<tr>
+            <td>${projectCell(q.description, q.address)}</td>
             <td>${esc(q.customer_name)}${q.status === 'Accepted' ? `<div class="small">${esc(q.customer_phone)} · ${esc(q.customer_email)}</div>` : ''}</td>
             <td>${esc(q.scope)}</td><td class="num">${money(q.estimated_price)}</td><td class="num"><strong>${money(q.final_price)}</strong></td><td>${pill(q.status)}</td>
             <td class="actions">${q.status === 'Pending' ? btn('Edit', 'btn-edit', call('editQuote', q.quote_id)) + btn('Withdraw', 'btn-danger', call('withdrawQuote', q.quote_id)) : ''}
                 ${q.status === 'Accepted' && !q.job_id ? btn('Schedule job', 'btn-primary', call('startJob', q.quote_id)) : ''}
-                ${q.job_id ? `<span class="small">Job #${q.job_id}</span>` : ''}</td></tr>`,
+                ${q.job_id ? '<span class="small">Job scheduled</span>' : ''}</td></tr>`,
             'You have not sent any quotes yet.')) },
-    jobs: { label: 'Jobs', badge: () => acceptedNoJob().length, render: () => card('My jobs', 'Rows in <code>JOB</code>. Updating a job also updates the customer\'s request status.', '',
-        table(['Job', 'Customer', 'Property', 'Start', 'End', '$Revenue', '$Expenses', 'Status', ''], D.jobs, j => `<tr>
-            <td>#${j.job_id}</td><td>${esc(j.customer_name)}</td><td>${esc(j.address)}<div class="small">${esc(j.description)}</div></td>
+    jobs: { label: 'Jobs', badge: () => acceptedNoJob().length, render: () => card('My jobs', 'Updating a job also updates the customer\'s project status.', '',
+        table(['Customer', 'Project', 'Start', 'End', '$Revenue', '$Expenses', 'Status', ''], D.jobs, j => `<tr>
+            <td>${esc(j.customer_name)}</td><td>${projectCell(j.description, j.address)}</td>
             <td>${day(j.start_date)}</td><td>${day(j.end_date)}</td><td class="num">${money(j.revenue)}</td><td class="num">${money(j.expenses)}</td><td>${pill(j.status)}</td>
             <td class="actions">${btn('Update', 'btn-edit', call('updateJob', j.job_id))}${!j.invoices && j.status !== 'Cancelled' ? btn('Invoice', 'btn-primary', call('createInvoice', j.job_id)) : ''}</td></tr>`,
             'No jobs yet. Jobs come from accepted quotes.')) },
-    invoices: { label: 'Invoices', render: () => card('Invoices I sent', 'Status changes to Paid automatically (trigger) when the customer\'s payments cover it.', '',
-        table(['Invoice', 'Job', 'Customer', 'Issued', 'Due', '$Amount', '$Paid', '$Balance', 'Status'], D.invoices, i => `<tr>
-            <td>#${i.invoice_id}</td><td>#${i.job_id}</td><td>${esc(i.customer_name)}</td><td>${day(i.issued)}</td><td>${day(i.due_date)}</td>
+    invoices: { label: 'Invoices', render: () => card('Invoices I sent', 'An invoice is marked Paid automatically when the customer\'s payments cover it.', '',
+        table(['Customer', 'Project', 'Issued', 'Due', '$Amount', '$Paid', '$Balance', 'Status'], D.invoices, i => `<tr>
+            <td>${esc(i.customer_name)}</td><td>${esc(short(i.description))}</td><td>${day(i.issued)}</td><td>${day(i.due_date)}</td>
             <td class="num">${money(i.amount_due)}</td><td class="num">${money(i.amount_paid)}</td><td class="num"><strong>${money(balance(i))}</strong></td><td>${pill(i.status)}</td></tr>`,
             'No invoices yet.')) },
-    visits: { label: 'Visits', badge: () => newVisits().length, render: () => card('Site visits', 'Visit requests from customers (<code>APPOINTMENT</code>).', '',
-        table(['ID', 'When', 'Customer', 'Request', 'Status', ''], D.appointments, a => `<tr>
-            <td>#${a.appointment_id}</td><td>${when(a.scheduled)}</td><td>${esc(a.customer_name)}<div class="small">${esc(a.customer_phone)}</div></td>
-            <td>#${a.request_id} ${esc(a.address)}<div class="small">${esc(a.description)}</div></td><td>${pill(a.status)}</td>
+    visits: { label: 'Visits', badge: () => newVisits().length, render: () => card('Site visits', 'Visit requests from customers.', '',
+        table(['When', 'Customer', 'Project', 'Status', ''], D.appointments, a => `<tr>
+            <td>${when(a.scheduled)}</td><td>${esc(a.customer_name)}<div class="small">${esc(a.customer_phone)}</div></td>
+            <td>${projectCell(a.description, a.address)}</td><td>${pill(a.status)}</td>
             <td class="actions">${a.status === 'Pending' ? btn('Confirm', 'btn-primary', call('setVisit', a.appointment_id, 'Confirmed')) : ''}
                 ${['Pending', 'Confirmed', 'Scheduled'].includes(a.status) ? btn('Done', 'btn-go', call('setVisit', a.appointment_id, 'Completed')) + btn('Cancel', 'btn-danger', call('setVisit', a.appointment_id, 'Cancelled')) : ''}</td></tr>`,
             'No visits.')) },
     reports: REPORTS_TAB,
-    profile: { label: 'Profile', render: () => card('Business profile', 'Your row in <code>CONTRACTOR</code>.', btn('Edit profile', 'btn-edit', 'editContractorProfile()'),
-        `<dl class="profile"><dt>Contractor ID</dt><dd>#${D.me.contractor_id}</dd><dt>Business</dt><dd>${esc(D.me.business_name)}</dd><dt>Contact</dt><dd>${esc(D.me.contact_name)}</dd>
+    profile: { label: 'Profile', render: () => card('Business profile', 'Your business details.', btn('Edit profile', 'btn-edit', 'editContractorProfile()'),
+        `<dl class="profile"><dt>Business</dt><dd>${esc(D.me.business_name)}</dd><dt>Contact</dt><dd>${esc(D.me.contact_name)}</dd>
          <dt>Email (login)</dt><dd>${esc(D.me.email)}</dd><dt>Phone</dt><dd>${esc(D.me.phone_number)}</dd></dl>`) },
 };
 
 function sendQuote(aiId) {
     const r = D.open_requests.find(x => x.ai_id === aiId);
-    openForm(`Quote for request #${r.request_id}`, [
+    openForm(`Quote for ${r.customer_name}: ${short(r.description, 40)}`, [
         { name: 'scope', label: 'Scope of work', type: 'textarea', value: r.ideas_generated },
         { name: 'final_price', label: 'Your price ($)', type: 'number', step: '0.01', min: 0.01, value: Number(r.estimated_price).toFixed(2),
-          hint: `Estimate for this request: ${money(r.estimated_price)}` },
+          hint: `Estimate for this project: ${money(r.estimated_price)}` },
     ], 'Send quote', 'submit_quote', { ai_id: aiId });
 }
 function editQuote(id) {
     const q = D.quotes.find(x => x.quote_id === id);
-    openForm(`Edit quote #${id}`, [
+    openForm(`Edit your quote for ${q.customer_name}`, [
         { name: 'scope', label: 'Scope of work', type: 'textarea', value: q.scope },
         { name: 'final_price', label: 'Your price ($)', type: 'number', step: '0.01', min: 0.01, value: Number(q.final_price).toFixed(2) },
     ], 'Save quote', 'update_quote', { id });
 }
-function withdrawQuote(id) { act('withdraw_quote', { id }, `Withdraw quote #${id}? It is deleted from the database.`); }
+function withdrawQuote(id) {
+    const q = D.quotes.find(x => x.quote_id === id);
+    act('withdraw_quote', { id }, `Withdraw your ${money(q.final_price)} quote for ${q.customer_name}?`);
+}
 function startJob(quoteId) {
     const q = D.quotes.find(x => x.quote_id === quoteId);
-    openForm(`Schedule job for quote #${quoteId}`, [
+    openForm(`Schedule the job for ${q.customer_name}`, [
         { name: 'start_date', label: 'Start date', type: 'date', value: isoToday(7) },
         { name: 'expenses', label: 'Expected expenses ($)', type: 'number', step: '0.01', min: 0, value: (Number(q.final_price) * 0.4).toFixed(2),
           hint: `Revenue is the accepted price: ${money(q.final_price)}` },
@@ -527,7 +541,7 @@ function startJob(quoteId) {
 }
 function updateJob(id) {
     const j = D.jobs.find(x => x.job_id === id);
-    openForm(`Update job #${id}`, [
+    openForm(`Update the job for ${j.customer_name}`, [
         { name: 'status', label: 'Status', type: 'select', value: j.status, options: ['Scheduled', 'In Progress', 'Completed', 'Cancelled'].map(s => ({ value: s, label: s })) },
         { name: 'end_date', label: 'End date', type: 'date', value: j.end_date ? String(j.end_date).slice(0, 10) : '', hint: 'Left empty, it is set to today when the job is Completed.' },
         { name: 'expenses', label: 'Expenses ($)', type: 'number', step: '0.01', min: 0, value: Number(j.expenses).toFixed(2) },
@@ -535,12 +549,15 @@ function updateJob(id) {
 }
 function createInvoice(jobId) {
     const j = D.jobs.find(x => x.job_id === jobId);
-    openForm(`Invoice for job #${jobId}`, [
+    openForm(`Invoice ${j.customer_name}`, [
         { name: 'amount_due', label: 'Amount due ($)', type: 'number', step: '0.01', min: 0.01, value: Number(j.revenue).toFixed(2) },
         { name: 'due_date', label: 'Due date', type: 'date', min: isoToday(), value: isoToday(30) },
     ], 'Send invoice', 'create_invoice', { job_id: jobId });
 }
-function setVisit(id, status) { act('update_appointment', { id, status }, status === 'Cancelled' ? `Cancel visit #${id}?` : null); }
+function setVisit(id, status) {
+    const a = D.appointments.find(x => x.appointment_id === id);
+    act('update_appointment', { id, status }, status === 'Cancelled' ? `Cancel the visit with ${a.customer_name} on ${when(a.scheduled)}?` : null);
+}
 function editContractorProfile() {
     openForm('Edit business profile', [
         { name: 'business_name', label: 'Business name', value: D.me.business_name },
@@ -549,10 +566,17 @@ function editContractorProfile() {
     ], 'Save profile', 'update_profile');
 }
 
+// Technical details (the SQL that ran) stay hidden unless asked for.
+function toggleSql() {
+    const on = document.body.classList.toggle('show-sql');
+    document.getElementById('sqlToggle').textContent = on ? 'Hide SQL' : 'Show SQL';
+    try { localStorage.setItem('portalShowSql', on ? '1' : '0'); } catch (e) {}
+}
+
 // ---------- start ----------
 document.getElementById('portalTitle').textContent = ROLE === 'customer' ? 'Customer Portal' : 'Contractor Portal';
 document.title = ROLE === 'customer' ? 'Customer Portal' : 'Contractor Portal';
-try { tab = localStorage.getItem('portalTab_' + ROLE); } catch (e) {}
+try { tab = localStorage.getItem('portalTab_' + ROLE); if (localStorage.getItem('portalShowSql') === '1') toggleSql(); } catch (e) {}
 load();
 </script>
 </body>

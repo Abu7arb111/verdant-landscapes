@@ -114,6 +114,8 @@ After logging in, each account type lands on its own page. Every action writes t
 
 The server takes the account ID from the login session. Each write checks ownership, so customers and contractors can change only their own records.
 
+The pages are organized by task and show names, not record IDs. Every dropdown lists people, addresses or project descriptions. The SQL that each action ran is hidden by default. Click **Show SQL** in the top bar to see it, for example when taking screenshots for the report. All database access goes through these screens; the app has no free-form SQL console.
+
 ---
 
 ### Configure the PHP portal on CSLaunch
