@@ -240,7 +240,51 @@ TABLE_CONFIG = [
           "options": ["Credit Card", "Debit Card", "Bank Transfer", "PayPal"]},
          {"name": "status", "label": "Status", "type": "select", "options": ["Completed", "Pending", "Failed"]},
      ]},
+    # "Contractors & More" tab (group "manage"): records that are not a step in the project chain.
+    {"table": "CONTRACTOR", "pk": "contractor_id", "singular": "Contractor", "label": "Contractors",
+     "icon": "🚜", "group": "manage", "search": ["business_name", "contact_name", "email", "phone_number"],
+     "help": "Landscaping businesses that quote and do the work. They log in with their email.",
+     "cascade": "their quotes, jobs, site visits and the invoices and payments for those jobs",
+     "columns": [
+         {"name": "business_name", "label": "Business Name", "type": "text"},
+         {"name": "contact_name", "label": "Contact Name", "type": "text"},
+         {"name": "email", "label": "Email (login)", "type": "email"},
+         {"name": "phone_number", "label": "Phone Number", "type": "text"},
+         {"name": "password", "label": "Password (at least 8 characters)", "type": "password"},
+     ]},
+    {"table": "APPOINTMENT", "pk": "appointment_id", "singular": "Site visit", "label": "Site visits",
+     "icon": "📅", "group": "manage", "search": ["status", "scheduled"],
+     "help": "Visits where a contractor looks at a customer's property for a project.",
+     "cascade": "nothing else",
+     "columns": [
+         {"name": "request_id", "label": "Project", "type": "fk", "ref": "PROJECT_REQUEST", "fill": {"customer_id": "customer"}},
+         {"name": "customer_id", "label": "Customer", "type": "fk", "ref": "CUSTOMER"},
+         {"name": "contractor_id", "label": "Contractor", "type": "fk", "ref": "CONTRACTOR"},
+         {"name": "scheduled", "label": "Date & Time", "type": "datetime"},
+         {"name": "status", "label": "Status", "type": "select",
+          "options": ["Pending", "Confirmed", "Scheduled", "Completed", "Cancelled"]},
+     ]},
+    {"table": "PHOTO", "pk": "photo_id", "singular": "Photo", "label": "Photos",
+     "icon": "📷", "group": "manage", "search": ["file_url", "file_type"],
+     "help": "Photos of a property attached to a project request (stored as a link).",
+     "cascade": "nothing else",
+     "columns": [
+         {"name": "request_id", "label": "Project", "type": "fk", "ref": "PROJECT_REQUEST"},
+         {"name": "file_url", "label": "Photo Link", "type": "url"},
+         {"name": "file_type", "label": "File Type", "type": "select", "options": ["image/jpeg", "image/png", "image/webp"]},
+     ]},
+    {"table": "SUBSCRIPTION_PLAN", "pk": "plan_id", "singular": "Subscription plan", "label": "Plans",
+     "icon": "🏷️", "group": "manage", "search": ["plan_name", "tier"],
+     "help": "Monthly plans customers can sign up for.",
+     "cascade": "nothing else; customers on this plan are left without a plan",
+     "columns": [
+         {"name": "plan_name", "label": "Plan Name", "type": "text"},
+         {"name": "price", "label": "Monthly Price ($)", "type": "number", "money": True},
+         {"name": "tier", "label": "Tier", "type": "text"},
+     ]},
 ]
+for _cfg in TABLE_CONFIG:
+    _cfg.setdefault("group", "workflow" if _cfg.get("workflow") else None)
 TABLES = {cfg["table"]: cfg for cfg in TABLE_CONFIG}
 
 # SELECTs that fill the foreign-key dropdowns. Extra columns (owner, sqft, ...) let the form
@@ -250,7 +294,7 @@ FK_OPTIONS = {
     "CUSTOMER": "SELECT customer_id AS value, name AS label FROM CUSTOMER ORDER BY name",
     "CONTRACTOR": "SELECT contractor_id AS value, business_name AS label FROM CONTRACTOR ORDER BY business_name",
     "PROPERTY": "SELECT property_id AS value, address AS label, customer_id AS owner FROM PROPERTY ORDER BY address",
-    "PROJECT_REQUEST": "SELECT r.request_id AS value, c.name || ': ' || substr(r.description, 1, 48) AS label, p.sqft AS sqft FROM PROJECT_REQUEST r JOIN PROPERTY p ON p.property_id = r.property_id JOIN CUSTOMER c ON c.customer_id = r.customer_id ORDER BY c.name, r.request_id",
+    "PROJECT_REQUEST": "SELECT r.request_id AS value, c.name || ': ' || substr(r.description, 1, 48) AS label, p.sqft AS sqft, r.customer_id AS customer FROM PROJECT_REQUEST r JOIN PROPERTY p ON p.property_id = r.property_id JOIN CUSTOMER c ON c.customer_id = r.customer_id ORDER BY c.name, r.request_id",
     "AI_ESTIMATE": "SELECT e.ai_id AS value, c.name || ': ' || substr(r.description, 1, 40) || ' - $' || printf('%.2f', e.estimated_price) AS label, e.estimated_price FROM AI_ESTIMATE e JOIN PROJECT_REQUEST r ON r.request_id = e.request_id JOIN CUSTOMER c ON c.customer_id = r.customer_id ORDER BY c.name, e.ai_id",
     "CONTRACTOR_QUOTE": "SELECT q.quote_id AS value, k.business_name || ' for ' || c.name || ' - $' || printf('%.2f', q.final_price) || ' (' || q.status || ')' AS label, q.contractor_id, q.final_price FROM CONTRACTOR_QUOTE q JOIN CONTRACTOR k ON k.contractor_id = q.contractor_id JOIN AI_ESTIMATE e ON e.ai_id = q.ai_id JOIN PROJECT_REQUEST r ON r.request_id = e.request_id JOIN CUSTOMER c ON c.customer_id = r.customer_id ORDER BY k.business_name, q.quote_id",
     "JOB": "SELECT j.job_id AS value, k.business_name || ' for ' || c.name || ' (' || j.status || ', starts ' || j.start_date || ')' AS label, j.revenue FROM JOB j JOIN CONTRACTOR k ON k.contractor_id = j.contractor_id JOIN CONTRACTOR_QUOTE q ON q.quote_id = j.quote_id JOIN AI_ESTIMATE e ON e.ai_id = q.ai_id JOIN PROJECT_REQUEST r ON r.request_id = e.request_id JOIN CUSTOMER c ON c.customer_id = r.customer_id ORDER BY c.name, j.job_id",
@@ -261,7 +305,7 @@ FK_OPTIONS = {
 if DB_HOST:
     FK_OPTIONS.update({
         "SUBSCRIPTION_PLAN": "SELECT plan_id AS value, CONCAT(plan_name, ' ($', FORMAT(price, 2), '/mo)') AS label FROM SUBSCRIPTION_PLAN ORDER BY plan_id",
-        "PROJECT_REQUEST": "SELECT r.request_id AS value, CONCAT(c.name, ': ', SUBSTR(r.description, 1, 48)) AS label, p.sqft AS sqft FROM PROJECT_REQUEST r JOIN PROPERTY p ON p.property_id = r.property_id JOIN CUSTOMER c ON c.customer_id = r.customer_id ORDER BY c.name, r.request_id",
+        "PROJECT_REQUEST": "SELECT r.request_id AS value, CONCAT(c.name, ': ', SUBSTR(r.description, 1, 48)) AS label, p.sqft AS sqft, r.customer_id AS customer FROM PROJECT_REQUEST r JOIN PROPERTY p ON p.property_id = r.property_id JOIN CUSTOMER c ON c.customer_id = r.customer_id ORDER BY c.name, r.request_id",
         "AI_ESTIMATE": "SELECT e.ai_id AS value, CONCAT(c.name, ': ', SUBSTR(r.description, 1, 40), ' - $', FORMAT(e.estimated_price, 2)) AS label, e.estimated_price FROM AI_ESTIMATE e JOIN PROJECT_REQUEST r ON r.request_id = e.request_id JOIN CUSTOMER c ON c.customer_id = r.customer_id ORDER BY c.name, e.ai_id",
         "CONTRACTOR_QUOTE": "SELECT q.quote_id AS value, CONCAT(k.business_name, ' for ', c.name, ' - $', FORMAT(q.final_price, 2), ' (', q.status, ')') AS label, q.contractor_id, q.final_price FROM CONTRACTOR_QUOTE q JOIN CONTRACTOR k ON k.contractor_id = q.contractor_id JOIN AI_ESTIMATE e ON e.ai_id = q.ai_id JOIN PROJECT_REQUEST r ON r.request_id = e.request_id JOIN CUSTOMER c ON c.customer_id = r.customer_id ORDER BY k.business_name, q.quote_id",
         "JOB": "SELECT j.job_id AS value, CONCAT(k.business_name, ' for ', c.name, ' (', j.status, ', starts ', j.start_date, ')') AS label, j.revenue FROM JOB j JOIN CONTRACTOR k ON k.contractor_id = j.contractor_id JOIN CONTRACTOR_QUOTE q ON q.quote_id = j.quote_id JOIN AI_ESTIMATE e ON e.ai_id = q.ai_id JOIN PROJECT_REQUEST r ON r.request_id = e.request_id JOIN CUSTOMER c ON c.customer_id = r.customer_id ORDER BY c.name, j.job_id",
@@ -664,6 +708,21 @@ def coerce(col, raw):
     except (TypeError, ValueError):
         raise BadInput(f"{col['label']} must be a number.")
     v = str(raw).strip()
+    if t == "password":
+        return hash_password(check_new_password(raw))
+    if t in ("text", "email", "url") and len(v) > 255:
+        raise BadInput(f"{col['label']} is too long.")
+    if t == "email":
+        v = v.lower()
+        if not EMAIL_RE.match(v):
+            raise BadInput(f"{col['label']} must be a valid email address.")
+    if t == "url" and not re.match(r"https?://\S+$", v):
+        raise BadInput(f"{col['label']} must be a web link starting with http:// or https://.")
+    if t == "datetime":
+        try:
+            return datetime.strptime(v.replace("T", " ")[:16], "%Y-%m-%d %H:%M").strftime("%Y-%m-%d %H:%M:00")
+        except ValueError:
+            raise BadInput(f"{col['label']} must be a date and time.")
     if t == "select" and v not in col["options"]:
         raise BadInput(f"{col['label']} must be one of: {', '.join(col['options'])}.")
     if t == "date" and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", v):
@@ -845,6 +904,7 @@ HTML_PAGE = """<!DOCTYPE html>
         <button class="tab-btn active" id="tabCust" onclick="switchView('customers')">👥 Customers</button>
         <button class="tab-btn" id="tabProp" onclick="switchView('properties')">🏡 Properties</button>
         <button class="tab-btn" id="tabWf" onclick="switchView('workflow')">📋 Projects &amp; Billing</button>
+        <button class="tab-btn" id="tabMg" onclick="switchView('manage')">🧰 Contractors &amp; More</button>
         <button class="tab-btn" id="tabRep" onclick="switchView('reports')">📊 Reports</button>
     </div>
     <div class="status-badge">
@@ -972,8 +1032,8 @@ Waiting for a database query.</div>
     <div id="viewWorkflow" class="card hidden">
         <div class="card-header">
             <div>
-                <div class="card-title">Project Workflow: Request &rarr; Estimate &rarr; Quote &rarr; Job &rarr; Invoice &rarr; Payment</div>
-                <div class="card-sub">Follow a project from the customer's request to the final payment. Pick a step below, then use the green button on a row to add the next step for it.</div>
+                <div class="card-title" id="wfGroupTitle">Project Workflow: Request &rarr; Estimate &rarr; Quote &rarr; Job &rarr; Invoice &rarr; Payment</div>
+                <div class="card-sub" id="wfGroupSub">Follow a project from the customer's request to the final payment. Pick a step below, then use the green button on a row to add the next step for it.</div>
             </div>
         </div>
         <div class="wf-steps" id="wfSteps"></div>
@@ -1559,9 +1619,16 @@ function switchView(view) {
     } else if (view === 'properties') {
         document.getElementById('tabProp').classList.add('active');
         document.getElementById('viewProperties').classList.remove('hidden');
-    } else if (view === 'workflow') {
-        document.getElementById('tabWf').classList.add('active');
+    } else if (view === 'workflow' || view === 'manage') {
+        // Both tabs share one screen; "manage" lists contractors, site visits, photos and plans.
+        wfGroup = view;
+        document.getElementById(view === 'manage' ? 'tabMg' : 'tabWf').classList.add('active');
         document.getElementById('viewWorkflow').classList.remove('hidden');
+        const [title, sub] = WF_GROUPS[view];
+        document.getElementById('wfGroupTitle').innerHTML = title;
+        document.getElementById('wfGroupSub').innerHTML = sub;
+        const cur = tcfg(wfTable);
+        if (!cur || cur.group !== view) { wfTable = schema.find(s => s.group === view).table; document.getElementById('wfSearch').value = ''; }
         return loadWorkflow(true);
     } else if (view === 'reports') {
         document.getElementById('tabRep').classList.add('active');
@@ -1843,16 +1910,18 @@ function fmtCell(col, v) {
     if (col.money) return '$' + Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     if (col.name === 'status') return `<span class="status-pill status-${String(v).toLowerCase().replace(/[^a-z]+/g, '-')}">${escapeHtml(v)}</span>`;
     if (col.type === 'number') return Number(v).toLocaleString();
+    if (col.type === 'datetime') return escapeHtml(String(v).replace('T', ' ').slice(0, 16));
+    if (col.type === 'url' && (String(v).startsWith('http://') || String(v).startsWith('https://'))) return `<a href="${escapeHtml(v)}" target="_blank" rel="noopener noreferrer">View photo</a>`;
     return escapeHtml(v);
 }
 
 function renderWfSteps() {
-    const steps = schema.filter(s => s.workflow);
+    const steps = schema.filter(s => s.group === wfGroup);
     document.getElementById('wfSteps').innerHTML = steps.map((s, i) => `
         <button class="wf-step ${s.table === wfTable ? 'active' : ''}" onclick="selectWfTable('${s.table}')">
             <span style="font-size: 1.2rem;">${s.icon}</span>
             <span><strong>${s.label}</strong><small>${tableCounts[s.table] ?? 0} on file</small></span>
-        </button>${i < steps.length - 1 ? '<span class="wf-arrow">&rarr;</span>' : ''}`).join('');
+        </button>${i < steps.length - 1 && wfGroup === 'workflow' ? '<span class="wf-arrow">&rarr;</span>' : ''}`).join('');
 }
 
 function selectWfTable(table) {
@@ -1874,18 +1943,19 @@ function renderWorkflow() {
     if (!cfg) return;
     renderWfSteps();
     document.getElementById('wfTitle').innerHTML = `${cfg.icon} ${escapeHtml(cfg.label)}`;
-    document.getElementById('wfKeys').innerHTML = escapeHtml(WF_HELP[cfg.table] || '');
+    document.getElementById('wfKeys').innerHTML = escapeHtml(cfg.help || WF_HELP[cfg.table] || '');
     document.getElementById('wfInsertBtn').innerText = `+ Add ${cfg.singular.toLowerCase()}`;
     const next = cfg.next ? tcfg(cfg.next.table) : null;
 
+    const shownCols = cfg.columns.filter(c => c.type !== 'password');
     let html = '<table><thead><tr>' +
-        cfg.columns.map(c => `<th>${escapeHtml(c.label.replace(' ($)', ''))}</th>`).join('') +
+        shownCols.map(c => `<th>${escapeHtml(c.label.replace(' ($)', '').replace(' (login)', ''))}</th>`).join('') +
         '<th style="text-align: right;">Actions</th></tr></thead><tbody>';
-    if (!wfRows.length) html += `<tr><td colspan="${cfg.columns.length + 1}" class="empty">Nothing matches this search.</td></tr>`;
+    if (!wfRows.length) html += `<tr><td colspan="${shownCols.length + 1}" class="empty">Nothing matches this search.</td></tr>`;
     wfRows.forEach(r => {
         const id = r[cfg.pk];
         html += '<tr>' +
-            cfg.columns.map(c => `<td>${fmtCell(c, r[c.name])}</td>`).join('') +
+            shownCols.map(c => `<td>${fmtCell(c, r[c.name])}</td>`).join('') +
             `<td class="actions">` +
             (next ? `<button class="btn btn-next" onclick="nextStep(${id})">+ ${next.singular}</button>` : '') +
             `<button class="btn btn-edit" onclick="openRowModal('${cfg.table}', ${id})">Edit</button>` +
@@ -1909,7 +1979,8 @@ function openRowModal(table, id, prefill) {
         const wrap = document.createElement('div');
         wrap.className = 'form-row';
         const label = document.createElement('label');
-        label.textContent = col.label + (col.nullable ? ' (optional)' : ' *');
+        const keepPassword = col.type === 'password' && rowEditId !== null;
+        label.textContent = col.label + (keepPassword ? ' (leave blank to keep the current one)' : col.nullable ? ' (optional)' : ' *');
         let input;
         if (col.type === 'fk' || col.type === 'select') {
             input = document.createElement('select');
@@ -1927,7 +1998,8 @@ function openRowModal(table, id, prefill) {
             input.rows = 3;
         } else {
             input = document.createElement('input');
-            input.type = col.type === 'number' ? 'number' : (col.type === 'date' ? 'date' : 'text');
+            input.type = { number: 'number', date: 'date', datetime: 'datetime-local', password: 'password', email: 'email', url: 'url' }[col.type] || 'text';
+            if (col.type === 'password') input.autocomplete = 'new-password';
             if (col.type === 'number') { input.min = '0'; input.step = col.money ? '0.01' : '1'; }
         }
         input.id = 'rf_' + col.name;
@@ -1939,11 +2011,12 @@ function openRowModal(table, id, prefill) {
     cfg.columns.forEach(col => {
         const input = document.getElementById('rf_' + col.name);
         let v;
-        if (row) v = row[col.name];
+        if (col.type === 'password') v = '';
+        else if (row) v = row[col.name];
         else if (prefill && prefill[col.name] !== undefined) v = prefill[col.name];
         else if (col.default === 'today') v = today;
         else v = col.default;
-        if (v !== null && v !== undefined && v !== '') input.value = String(v);
+        if (v !== null && v !== undefined && v !== '') input.value = col.type === 'datetime' ? String(v).replace(' ', 'T').slice(0, 16) : String(v);
     });
     cfg.columns.filter(c => c.fill).forEach(col => {
         if (!row) applyFill(col);
@@ -2027,6 +2100,13 @@ function toggleSql() {
     try { localStorage.setItem('adminShowSql', on ? '1' : '0'); } catch (e) {}
 }
 
+let wfGroup = 'workflow';
+const WF_GROUPS = {
+    workflow: ['Project Workflow: Request &rarr; Estimate &rarr; Quote &rarr; Job &rarr; Invoice &rarr; Payment',
+               "Follow a project from the customer's request to the final payment. Pick a step below, then use the green button on a row to add the next step for it."],
+    manage: ['Contractors, Site Visits, Photos &amp; Plans',
+             'Add, edit or remove contractors, site visits, project photos and subscription plans.'],
+};
 const WF_HELP = {
     PROJECT_REQUEST: 'Work customers asked for on one of their properties.',
     AI_ESTIMATE: 'Automatic price estimates for each request.',
@@ -2047,14 +2127,14 @@ window.onload = authInit;
 
 def list_rows(table, q):
     cfg = TABLES[table]
-    cols = [cfg["pk"]] + [c["name"] for c in cfg["columns"]]
+    cols = [cfg["pk"]] + [c["name"] for c in cfg["columns"] if c["type"] != "password"]
     sql = f"SELECT {', '.join(cols)} FROM {table}"
     params = []
     if q:
         cast_type = "CHAR" if DB_HOST else "TEXT"
         # Search the columns listed in "search", or every non-FK column by default.
         searched = [c for c in cfg["columns"] if c["name"] in cfg.get("search", [])] or \
-                   [c for c in cfg["columns"] if c["type"] != "fk"]
+                   [c for c in cfg["columns"] if c["type"] not in ("fk", "password")]
         sql += " WHERE " + " OR ".join(
             f"CAST({c['name']} AS {cast_type}) LIKE ?" if c["type"] in ("number", "fk") else f"{c['name']} LIKE ?"
             for c in searched)
@@ -2072,7 +2152,11 @@ def write_row(table, action, payload):
     if action == "delete":
         sql, params = f"DELETE FROM {table} WHERE {pk} = ?", [int(payload["id"])]
     else:
-        given = payload.get("values", {})
+        given = dict(payload.get("values", {}))
+        for c in cfg["columns"]:
+            # On edit, an empty password box means "keep the current password".
+            if c["type"] == "password" and action == "update" and not str(given.get(c["name"]) or "").strip():
+                given.pop(c["name"], None)
         cols = [c for c in cfg["columns"] if c["name"] in given]
         values = [coerce(c, given[c["name"]]) for c in cols]
         if not cols:
@@ -2083,7 +2167,8 @@ def write_row(table, action, payload):
         else:
             sql = f"UPDATE {table} SET {', '.join(c['name'] + ' = ?' for c in cols)} WHERE {pk} = ?"
             params = values + [int(payload["id"])]
-    shown = render_sql(sql, params) + ";"
+    hidden = {i for i, c in enumerate(cols) if c["type"] == "password"} if action != "delete" else set()
+    shown = render_sql(sql, [("••••••••" if i in hidden else p) for i, p in enumerate(params)]) + ";"
     conn = get_conn()
     try:
         invoice_id, before = None, None
@@ -2112,7 +2197,10 @@ def write_row(table, action, payload):
         conn.commit()
         return result
     except DB_ERRORS as e:
-        return {"status": "error", "error": str(e), "sql": shown + f"\n-- ERROR: {e}", "timestamp": now()}
+        msg = str(e)
+        if "UNIQUE" in msg.upper() or "DUPLICATE" in msg.upper():
+            msg = "That email is already used by another account."
+        return {"status": "error", "error": msg, "sql": shown + f"\n-- ERROR: {e}", "timestamp": now()}
     finally:
         conn.close()
 

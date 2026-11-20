@@ -108,7 +108,7 @@ After logging in, each account type lands on its own page. Every action writes t
 
 | Role | Page | What it can do |
 |------|------|----------------|
-| Administrator | `/` | Full management portal: all tables, workflow, reports |
+| Administrator | `/` | Manage customers, properties and the full project workflow. The **Contractors & More** tab manages contractors (with hashed passwords), site visits, photos and subscription plans. Business reports and adding admins are here too. |
 | Customer | `/customer` | Add, edit, and delete properties. Submit project requests, which create an `AI_ESTIMATE` row. Accept or reject quotes, book site visits, pay invoices, and edit the profile. |
 | Contractor | `/contractor` | Quote open requests. Edit or withdraw pending quotes. Schedule jobs from accepted quotes, update job status, send invoices, confirm visits, and edit the profile. |
 
