@@ -1,102 +1,110 @@
-# CS 4604 Introduction to Database Systems — Phase 2
-## Group 6: Landscaping AI Estimator
+# Landscaping AI Estimator: setup and operations guide
 
-### 👥 Team Members & Contributions
-1. **Zachary Brosius** (`ztbrosuis@vt.edu`) — Database Architect & Integrity Engineer
-   - Configured relational schema constraints and foreign key actions (`ON DELETE CASCADE`, `ON UPDATE CASCADE`) in MariaDB.
-   - Validated sample data population with at least 20 tuples across all 12 relational tables.
-   - Designed SQL mutation statements ensuring ACID transaction safety during concurrent GUI modifications.
+This guide covers running the final application, which is CS 4604 Group 6's Phase 3 work. For the project overview, user roles, reports and team, see the [main README](../README.md).
 
-2. **Saveer Pande** (`spande@vt.edu`) — Backend & Database Integration Lead
-   - Established and verified interface-to-database communication pipeline via PHP PDO / MySQLi.
-   - Built server-side data handlers processing HTTP POST payloads for insertion and deletion.
-   - Structured database error handling, constraint violation checks, and live query execution logging.
+The application is a Python web server, [`app/server.py`](app/server.py), that runs on your computer at http://localhost:8080. It stores data in the `landscaping_db` MariaDB database on the CS Launch **discovery** cluster (namespace `ai-landscaping-db`, service `mariadb`). The database isn't exposed to the internet, so the app reaches it through a `kubectl port-forward` tunnel on `localhost:3307`.
 
-3. **Benny He** (`bennyhe163@vt.edu`) — Frontend UI/UX & Interaction Developer
-   - Developed the GUI Management Portal with real-time responsive dashboard and table views.
-   - Created interactive modal dialogs for tuple entry with input validation (regex formatting for phone, email, and numeric types).
-   - Built the delete confirmation dialogs and dynamic SQL reflection log interface.
+## Requirements
 
-4. **Ahmad Abu Harb** (`ahmad@vt.edu`) — Full-Stack Integration & Documentation Lead
-   - Coordinated end-to-end integration linking GUI triggers directly to database queries.
-   - Tested and validated Insert and Delete operations, ensuring immediate two-way reflection between UI and database tables.
-   - Compiled the technical verification report, captured visual proof screenshots, and packaged deliverables.
+- Python 3.10 or newer (`py` on Windows, `python3` on macOS and Linux)
+- kubectl
+- Your own Discovery KubeConfig from [CS Launch](https://launch.cs.vt.edu)
+- The MariaDB username and password for `landscaping_db`. These are separate from your VT login; ask the team.
 
----
+## Run on Windows
 
-### 📂 Submission Package Structure
-```text
-CS4604_Group6_Phase2/
-├── CS4604_Group6_Phase2_Report.pdf   <-- Complete Professor-Ready Submission PDF with Screenshots
-├── README.md                         <-- Project Documentation & Quick Start
-├── report.html                       <-- Source HTML for the PDF Report
-├── screenshots/                      <-- High-Resolution Verification Screenshots
-│   ├── 01_connection_and_initial_table.png
-│   ├── 02_insert_modal_form.png
-│   ├── 03_insert_success_gui.png
-│   ├── 04_insert_reflected_in_database.png
-│   ├── 05_delete_confirmation_modal.png
-│   ├── 06_delete_success_gui.png
-│   ├── 07_delete_reflected_in_database.png
-│   └── 08_properties_major_table.png
-├── sql/
-│   └── landscaping_phase2_schema_and_data.sql  <-- Complete DDL + 20+ Sample Tuples per Table
-├── php/                              <-- Production PHP Portal for Apache / Discovery Server
-│   ├── config.php
-│   ├── header.php
-│   ├── footer.php
-│   ├── index.php
-│   ├── customers.php
-│   ├── properties.php
-│   └── css/style.css
-└── app/                              <-- Zero-Dependency Local Runner (Python 3)
-    ├── server.py
-    └── landscaping.db
-```
+1. Install kubectl, then open a new terminal so it's on your PATH:
+   ```bash
+   winget install -e --id Kubernetes.kubectl
+   ```
+2. Sign in to CS Launch, open the **discovery** cluster, and click **Download KubeConfig**. Save the file as `%USERPROFILE%\.kube\config`. It contains your personal access token, so keep it out of Git.
+3. Check that you can reach the database namespace:
+   ```bash
+   kubectl -n ai-landscaping-db get pods
+   ```
+4. From the repository root, create the virtual environment once:
+   ```bash
+   py -m venv Phase_3\app\.venv
+   ```
+   ```bash
+   Phase_3\app\.venv\Scripts\python.exe -m pip install -r Phase_3\app\requirements.txt
+   ```
+5. Start the tunnel and the server together. The script asks for the MariaDB username and password.
+   ```bash
+   powershell -ExecutionPolicy Bypass -File Phase_3\app\start_mariadb.ps1
+   ```
+6. Open http://localhost:8080.
 
----
+To skip the username prompt, copy `app/db_config.local.example.json` to `app/db_config.local.json` and fill in `DB_USER`. That file is git-ignored. Add `DB_PASS` only on a private machine.
 
-### Run the GUI against the database in phpMyAdmin
+`py Phase_3\app\server.py` on its own also works: if `localhost:3307` isn't open, it starts the port-forward itself.
 
-The Python GUI can connect to the existing `landscaping_db` schema on VT Discovery. GUI inserts, updates, and deletes commit directly to that schema. Open [phpMyAdmin](https://landscapingtool.discovery.cs.vt.edu/), select the table, and refresh **Browse** to see the latest rows.
+## Run on macOS or Linux
 
-From the repository root, install the driver in a virtual environment:
+Set up kubectl and the KubeConfig as in steps 1–3 above, saving the KubeConfig as `~/.kube/config`. Then:
 
 ```bash
 python3 -m venv Phase_3/app/.venv
 Phase_3/app/.venv/bin/python -m pip install -r Phase_3/app/requirements.txt
-```
-
-The HTTPS address opens phpMyAdmin. The Python GUI runs on your computer and connects to the CSLaunch service `mariadb` in namespace `ai-landscaping-db`. On the Discovery cluster dashboard, use **Copy KubeConfig** and save it privately as `~/.kube/config`. See the [VT CSLaunch terminal guide](https://wiki.cs.vt.edu/index.php/HowTo%3ACS_Launch_Terminal) for kubectl setup. Forward the database service in a separate terminal:
-
-```bash
-kubectl -n ai-landscaping-db port-forward svc/mariadb 3307:3306
-```
-
-Leave the port-forward running while you use the GUI.
-
-In another terminal, start the GUI through the tunnel:
-
-```bash
-export DB_HOST=127.0.0.1 DB_PORT=3307 DB_NAME=landscaping_db
-read -rp "MariaDB user: " DB_USER
-read -rsp "MariaDB password: " DB_PASS
-echo
-export DB_USER DB_PASS
+kubectl -n ai-landscaping-db port-forward svc/mariadb 3307:3306 &
 Phase_3/app/.venv/bin/python Phase_3/app/server.py
 ```
 
-Open `http://localhost:8080` and check for **MariaDB** in the database banner. The GUI uses the existing schema and does not import or reset it. Use phpMyAdmin for custom SQL.
+The server asks for the MariaDB username and password. You can also set `DB_USER` and `DB_PASS` in the environment.
 
-### Run the local SQLite demo
+## Accounts
 
-With the database environment variables unset, run `python3 Phase_3/app/server.py` and open `http://localhost:8080`. Demo edits stay in `Phase_3/app/landscaping.db`.
+| Task | How |
+|------|-----|
+| Create the **first** administrator | `py Phase_3/app/server.py create-admin <username>`. This works only while the `ADMIN` table is empty. |
+| Add more administrators | Log in as an admin and use **Add admin** in the app |
+| Sign up as a customer or contractor | Use **Sign up** on the login page |
+| Change your password | Use **Change password** in the top bar after logging in. This also logs out your other sessions. |
+| Log in as a sample customer or contractor | Sample passwords are hashes of random values. Give one a known password with `py Phase_3/app/server.py reset-password customer john.smith@gmail.com`. Contractor e-mails work the same way. |
 
----
+Customers and contractors log in with their e-mail address, and administrators with their username. Sessions last 8 hours, and restarting the server logs everyone out.
 
-### Configure the PHP portal on CSLaunch
+## Role pages
 
-For a PHP portal already running on CSLaunch, set `DB_HOST` to the internal MariaDB service name, `DB_PORT=3306`, and `DB_NAME` to the schema shown in phpMyAdmin. Set `DB_USER` and `DB_PASS` from a CSLaunch Secret. The PHP runtime needs PDO MySQL.
+After logging in, each account type lands on its own page.
 
-For a fresh database only, import `sql/landscaping_phase2_schema_and_data.sql` into phpMyAdmin.
+| Role | Page | What it can do |
+|------|------|----------------|
+| Administrator | `/` | Manage customers, properties and the full project workflow. The **Contractors & More** tab manages contractors, site visits, photos and subscription plans. Reports and **Add admin** are here too. |
+| Customer | `/customer` | Manage properties. Submit project requests, which create an AI estimate. Accept or reject quotes, book site visits, pay invoices, view reports and edit the profile. |
+| Contractor | `/contractor` | Quote open requests. Edit or withdraw pending quotes. Schedule jobs from accepted quotes, update job status, send invoices, confirm visits, view reports and edit the profile. |
 
+The server takes the account from the login session, never from the request. Each write checks that the record belongs to that account. Pages show names instead of record IDs. **Show SQL** in the top bar reveals the statement each action ran, which is useful for report screenshots. The app has no free-form SQL console; all database access goes through these screens.
+
+## Offline demo (SQLite)
+
+```bash
+py Phase_3/app/server.py --demo
+```
+
+This builds `app/landscaping.db` from the seed SQL file on first run and needs no tunnel or MariaDB login. Changes stay in that file and don't appear in phpMyAdmin. Delete `landscaping.db` to start over, then create an admin with `py Phase_3/app/server.py --demo create-admin <username>`.
+
+## Database files
+
+| File | Use |
+|------|-----|
+| [`sql/landscaping_phase2_schema_and_data.sql`](sql/landscaping_phase2_schema_and_data.sql) | Complete schema (13 tables), 30 sample rows per entity table, 2 views, 2 triggers and 6 indexes. It **drops and recreates every table**, so import it into phpMyAdmin only for a fresh database. |
+| [`sql/add_admin_table.sql`](sql/add_admin_table.sql) | Adds the `ADMIN` table to an older database. The server normally creates this table itself; run the file only if the app's database account can't create tables. |
+| [`sql/hash_existing_sample_passwords.sql`](sql/hash_existing_sample_passwords.sql) | One-time migration that replaced the old placeholder sample passwords with hashes. It's already applied to the live database. |
+
+The live CS Launch database already has the full schema, views, triggers and 30+ rows per table. Use it as is.
+
+## Troubleshooting
+
+| Message | Fix |
+|---------|-----|
+| `kubectl is not installed` | Run `winget install -e --id Kubernetes.kubectl`, then open a new terminal. |
+| `The port-forward failed` / `Unauthorized` | Your KubeConfig is missing or expired. Download a new one from CS Launch to `%USERPROFILE%\.kube\config`. |
+| `Cannot reach MariaDB at 127.0.0.1:3307` | The tunnel isn't running. Start it with `kubectl -n ai-landscaping-db port-forward svc/mariadb 3307:3306`. |
+| `Access denied for user` | Wrong MariaDB username or password. |
+| `No administrator exists yet` | Create one with `create-admin`; see **Accounts**. |
+| phpMyAdmin returns 403 | Connect to the VT network or VPN. |
+
+## Earlier prototypes
+
+`php/` is the Phase 2 PHP portal, and `report.html`, `CS4604_Group6_Phase2_Report.pdf` and `screenshots/` are Phase 2 and 3 report material. The final application doesn't use them; they're kept for the course record.

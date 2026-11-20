@@ -1,0 +1,25 @@
+CS 4604 Introduction to Database Systems - Fall 2026
+Virginia Tech
+
+Team number:   Group 6
+Project name:  Landscaping AI Estimator
+Repository:    https://github.com/Abu7arb111/verdant-landscapes
+
+Team members
+------------
+Zachary Brosius   ztbrosius@vt.edu         Database architect
+Saveer Pande      spande@vt.edu            Backend and database integration
+Benny He          bennyhe163@vt.edu        Application and UI lead
+Ahmad Abu Harb    ahmadalharb1987@vt.edu   Integration and documentation
+
+Database
+--------
+DBMS:      MariaDB 11.4 on the CS Launch (Discovery) cluster
+Namespace: ai-landscaping-db   Service: mariadb   Schema: landscaping_db
+Admin UI:  https://landscapingtool.discovery.cs.vt.edu/ (phpMyAdmin, VT network or VPN)
+
+Application
+-----------
+Python web application: Phase_3/app/server.py (http://localhost:8080)
+User types: Administrator, Customer, Contractor
+Setup and run instructions: README.md and Phase_3/README.md

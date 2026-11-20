@@ -1,157 +1,119 @@
-# 🌿 Verdant Landscapes — Premier Outdoor Living & Hardscape Web Application
+# Landscaping AI Estimator
 
-![Version](https://img.shields.io/badge/version-2.0.0-emerald)
-![License](https://img.shields.io/badge/license-MIT-gold)
-![Build](https://img.shields.io/badge/build-passing-brightgreen)
-![Tech Stack](https://img.shields.io/badge/tech-HTML5%20%7C%20CSS3%20%7C%20Vanilla%20JS-blue)
+**CS 4604 Introduction to Database Systems, Virginia Tech, Fall 2026 · Group 6**
 
-A modern, responsive, and feature-packed web application built for **Verdant Landscapes & Outdoor Living** (serving Virginia Beach & Hampton Roads). This application features an interactive AI assistant, visual Before & After transformation sliders, transparent service pricing tiers, a multi-step photo quote estimator, and an interactive appointment booking system.
+Landscaping AI Estimator is a database application that connects homeowners with landscaping contractors. A customer registers a property and describes a project. The system generates an AI price estimate, contractors send quotes, and the accepted quote becomes a job that is invoiced and paid, all in one MariaDB database.
 
----
-
-## 🌟 Key Features
-
-### 1. 🤖 Interactive AI Assistant ("Sandy")
-- Floating real-time AI assistant capable of answering client inquiries regarding pricing, service options, project timelines, warranties, and scheduling.
-- Quick-reply prompt chips for instant answers.
-
-### 2. 🎛️ Interactive Visual Transformation Slider
-- Dual-layer image comparison tool allowing prospective clients to drag a central divider left and right to inspect real yard transformations (Before vs. After).
-
-### 3. 📸 Instant Photo Quote Estimator
-- Multi-step wizard allowing users to select services (Landscape Design, Paver Patios, Drainage, Sod, Lighting, Fences), upload photos of their lawn/yard, and receive real-time price range calculations.
-
-### 4. 💎 Transparent Pricing Tiers
-- Side-by-side comparison of service packages (*Essential Care*, *Full Yard Transformation*, *Executive Hardscape*) complete with feature checkmarks and direct inquiry integration.
-
-### 5. 📅 Interactive Design Consultation Booking
-- Live calendar interface with customizable time slots, automated booking confirmation, and reference tracking.
-
-### 6. 📱 Responsive Glassmorphism UI Design System
-- Built with a curated dark/emerald color palette, glassmorphism cards, micro-animations, accessible navigation, and full mobile optimization.
+The application runs on your computer and stores its data in the team's MariaDB database on Virginia Tech's CS Launch (Discovery) cluster. Every change made in the app shows up in [phpMyAdmin](https://landscapingtool.discovery.cs.vt.edu/) (VT network or VPN required).
 
 ---
 
-## 🛠️ Technology Stack
+## Users and what they can do
 
-- **Frontend Core**: Semantic HTML5 & Modern ECMAScript (Vanilla JS)
-- **Styling**: Custom CSS3 Design System with CSS Custom Properties, Glassmorphic Layers, and Flexbox/Grid
-- **Icons & Graphics**: Inline SVG vector graphics
-- **State Management**: LocalStorage persistence for user bookings and leads
+Three types of users log in with their own username and password. Customers and contractors can sign up on the login page. Administrators can't sign up: the first one is created from the command line, and only an administrator can create more.
+
+| User | Main tasks |
+|------|------------|
+| **Customer** | Add and edit properties · request a project and get an instant AI estimate · compare, accept or reject contractor quotes · book site visits · pay invoices · view 5 spending reports · edit profile and change password |
+| **Contractor** | Browse open project requests · send, edit or withdraw quotes · schedule jobs from accepted quotes and update their status · send invoices · confirm site visits · view 5 earnings reports · edit profile and change password |
+| **Administrator** | Manage customers, properties, contractors, plans, site visits and photos · oversee the request → estimate → quote → job → invoice → payment workflow · view 11 business reports, 5 of them managerial · create other administrators · change password |
+
+Every screen is organized by task, not by table, and shows names, addresses and project descriptions rather than record IDs. Users never type SQL; for the class demo, a **Show SQL** button reveals the statement each action ran.
+
+### Accounts and security
+
+- Accounts are stored in database tables: `CUSTOMER`, `CONTRACTOR` and `ADMIN`. No passwords are hardcoded.
+- Passwords are stored as salted PBKDF2-SHA256 hashes (600,000 iterations), never as plain text.
+- Every user can sign up (customers and contractors), log in, log out and change their password.
+- Five failed logins lock that account for 5 minutes.
+- Customers and contractors can only see and change their own records. The server checks ownership on every write.
 
 ---
 
-## 📁 File Structure
+## Reports
+
+| User | Reports | Aggregates used |
+|------|---------|-----------------|
+| Customer | My Spending by Contractor · Quote Comparison per Request · Projects & Spending by Property · My Invoices by Status · My Payments by Method | COUNT, SUM, AVG, MIN, MAX |
+| Contractor | My Monthly Earnings · My Quotes by Outcome · My Pricing vs. Estimate by Lot Size · My Top Customers · My Invoices & Collections by Status | COUNT, SUM, AVG, MIN, MAX |
+| Administrator (managerial) | Business Overview · Job Value Statistics by Status · Contractor Performance Leaderboard · Monthly Revenue Trend · Customers & Property Sizes by Plan | COUNT, SUM, AVG, MIN, MAX |
+| Administrator (operations) | Revenue & Profit by Plan · Outstanding Invoices · Customers Owing More Than $500 · AI Estimate vs. Contractor Quote · Contractors With No Accepted Quote · Job Summary | COUNT, SUM, views, subqueries |
+
+Customer and contractor reports cover only that user's own data, and each report includes a bar chart.
+
+---
+
+## Database
+
+- **13 tables:** `SUBSCRIPTION_PLAN`, `CUSTOMER`, `CONTRACTOR`, `ADMIN`, `PROPERTY`, `PROJECT_REQUEST`, `PHOTO`, `AI_ESTIMATE`, `CONTRACTOR_QUOTE`, `APPOINTMENT`, `JOB`, `INVOICE`, `PAYMENT`.
+- **Sample data:** 30 rows in every entity table, plus 3 subscription plans.
+- **Views:**
+  - `v_job_summary`: each job with its customer, property, contractor, estimate, quote and profit.
+  - `v_invoice_balance`: each invoice with the amount paid and the balance due.
+- **Triggers:** `trg_payment_insert_mark_paid` and `trg_payment_update_mark_paid` mark an invoice Paid once completed payments cover the amount due.
+- **Indexes** on the columns the app searches and the reports filter on.
+- **Foreign keys** use `ON UPDATE CASCADE`. Deletes cascade down the project workflow, and deleting a plan sets its customers' plan to `NULL`.
+
+The ER diagram, relational schema and ER report are in [`ER_Diagram/`](ER_Diagram/).
+
+---
+
+## Quick start (Windows)
+
+1. Install kubectl:
+   ```bash
+   winget install -e --id Kubernetes.kubectl
+   ```
+2. Sign in to [CS Launch](https://launch.cs.vt.edu) and open the **discovery** cluster. Click **Download KubeConfig** and save the file as `%USERPROFILE%\.kube\config`.
+3. From the repository root, start the database tunnel and the app together. The script asks for the MariaDB username and password.
+   ```bash
+   powershell -ExecutionPolicy Bypass -File Phase_3\app\start_mariadb.ps1
+   ```
+4. The first time only, create the first administrator in another terminal:
+   ```bash
+   py Phase_3\app\server.py create-admin <username>
+   ```
+5. Open http://localhost:8080 and log in.
+
+To try the app without CS Launch, run `py Phase_3\app\server.py --demo`. It uses a local SQLite copy of the same schema and data, and nothing it changes reaches phpMyAdmin.
+
+See [`Phase_3/README.md`](Phase_3/README.md) for setup on macOS and Linux, resetting passwords, rebuilding the database, and troubleshooting.
+
+---
+
+## Repository layout
 
 ```text
-verdant-landscapes/
-├── index.html        # Main HTML structure, navigation, sections & modals
-├── style.css         # Visual design system, dark mode glassmorphism, animations
-├── app.js            # Interactive logic (AI Bot, Slider, Estimator, Booking, FAQ)
-├── assets/           # High-resolution project showcase & hero imagery
-│   ├── hero.png      # Modern hardscape patio & yard showcase
-│   ├── garden.png    # Front yard makeover & flowerbeds
-│   ├── hardscape.png # Granite stone paver patio & fire pit
-│   └── lighting.png  # Landscape architectural lighting
-└── README.md         # Project documentation
+├── README.md                     This file
+├── ID.txt                        Team information
+├── ER_Diagram/                   ER diagram, relational schema, ER report (design phase)
+├── CS4604_Group6_Phase3-2_Report.pdf
+├── Phase_3/
+│   ├── README.md                 Setup and operations guide
+│   ├── app/
+│   │   ├── server.py             Web server, login, admin portal and reports
+│   │   ├── portal.html           Customer and contractor pages
+│   │   ├── start_mariadb.ps1     Starts the CS Launch tunnel and the server (Windows)
+│   │   └── requirements.txt      Python driver for MariaDB (PyMySQL)
+│   ├── sql/
+│   │   ├── landscaping_phase2_schema_and_data.sql   Full schema, 30-row sample data, views, triggers, indexes
+│   │   ├── add_admin_table.sql   Adds ADMIN to an older database
+│   │   └── hash_existing_sample_passwords.sql       One-time migration from placeholder passwords
+│   ├── php/                      Phase 2 PHP portal (earlier prototype, not used by the final app)
+│   ├── screenshots/              Screenshots used in the phase reports
+│   └── CS4604_Group6_Phase2_Report.pdf, report.html
+└── index.html, style.css, app.js, assets/
+                                  Front-end marketing prototype from the proposal phase
+                                  (static page, not connected to the database)
 ```
 
 ---
 
-## 🚀 Quick Start & Local Setup
+## Team and roles
 
-1. **Clone the repository:**
-   ```bash
-   git clone git@github.com:Abu7arb111/verdant-landscapes.git
-   ```
-
-2. **Open the project directory:**
-   ```bash
-   cd verdant-landscapes
-   ```
-
-3. **Run a local web server (Python or Node):**
-   ```bash
-   # Using Python 3
-   python3 -m http.server 8080
-
-   # Or using Node http-server
-   npx http-server -p 8080
-   ```
-
-4. **View in Browser:**
-   Open `http://localhost:8080` in your web browser.
-
----
-
-## Run the local database GUI with CSLaunch
-
-The Phase 3 database GUI runs on your computer and saves changes to the shared MariaDB database on Virginia Tech's Discovery cluster. You need Python 3, `kubectl`, access to the `ai-landscaping-db` namespace, and a MariaDB account with permission to read and edit `landscaping_db`.
-
-1. Sign in to CSLaunch with your own VT account. Download your own Discovery kubeconfig (`discovery.yaml`) and save it as `~/.kube/config`, or use your existing Discovery kubeconfig if it already gives you access to `ai-landscaping-db`. Keep the file private and out of Git. From a terminal, forward the MariaDB service and leave that terminal open. [VT CSLaunch terminal setup](https://wiki.cs.vt.edu/index.php/HowTo%3ACS_Launch_Terminal)
-
-   ```bash
-   kubectl -n ai-landscaping-db port-forward svc/mariadb 3307:3306
-   ```
-
-2. In a second Bash terminal, run these commands from the repository root. If you have the static website running on port 8080, stop it first. Enter your MariaDB username and password when prompted. These credentials are separate from your CSLaunch login, and the password prompt hides your input.
-
-   ```bash
-   python3 -m venv Phase_3/app/.venv
-   Phase_3/app/.venv/bin/python -m pip install -r Phase_3/app/requirements.txt
-
-   export DB_HOST=127.0.0.1 DB_PORT=3307 DB_NAME=landscaping_db
-   read -rp "MariaDB username: " DB_USER
-   read -rsp "MariaDB password: " DB_PASS
-   echo
-   export DB_USER DB_PASS
-
-   Phase_3/app/.venv/bin/python Phase_3/app/server.py
-   ```
-
-3. Open [the local GUI](http://localhost:8080/) and check that the database banner shows **MariaDB** and `landscaping_db`. To see a saved change, use the VT campus network or VPN, open phpMyAdmin, and refresh **Browse** for the edited table. [CSLaunch phpMyAdmin](https://landscapingtool.discovery.cs.vt.edu/)
-
-Keep kubeconfigs and passwords out of Git. The shared database already has its schema, so use it as-is. The seed SQL recreates tables and is for a fresh database only. See the [Phase 3 README](Phase_3/README.md) for the SQLite demo and PHP portal setup.
-
----
-
-## 🎓 CS 4604: Database Systems — Phase 2 Deliverables
-
-### 👥 Group 6 Team Members & Contributions
-- **Zachary Brosius** (`ztbrosuis@vt.edu`) — Database Architect & Integrity Engineer
-  - Configured MariaDB relational schema constraints and foreign key actions (`ON DELETE CASCADE`, `ON UPDATE CASCADE`).
-  - Validated sample data population with at least 20 tuples across all 12 relational tables.
-  - Designed SQL mutation statements ensuring ACID transaction safety during concurrent GUI modifications.
-- **Saveer Pande** (`spande@vt.edu`) — Backend & Database Integration Lead
-  - Established database connection handler via PHP PDO / MySQLi to `landscapingtool.discovery.cs.vt.edu:3306`.
-  - Built backend HTTP POST endpoints for `INSERT INTO CUSTOMER` and `DELETE FROM CUSTOMER`.
-  - Handled database error codes, constraint violation checks, and live query execution logging.
-- **Benny He** (`bennyhe163@vt.edu`) — Frontend UI/UX & Interaction Developer
-  - Developed the GUI Management Portal layout, navigation, and live table views.
-  - Created interactive modal dialogs for tuple entry with input validation (regex formatting for phone, email, and numeric types).
-  - Built the delete confirmation dialogs and dynamic SQL reflection log interface.
-- **Ahmad Abu Harb** (`ahmad@vt.edu`) — Full-Stack Integration & Documentation Lead
-  - Coordinated end-to-end integration linking GUI triggers directly to database queries.
-  - Tested and validated Insert and Delete operations, ensuring immediate two-way reflection between UI and database tables.
-  - Compiled the technical verification report, captured visual proof screenshots, and packaged deliverables.
-
-### 📁 Phase 2 Directory Structure (`Phase_2/`)
-- `CS4604_Group6_Phase2_Report.pdf`: Complete submission report with team member roles, code listings, and all 8 embedded verification screenshots.
-- `sql/landscaping_phase2_schema_and_data.sql`: Complete DDL for all 12 tables + ready sample data with **20+ tuples** per major table.
-- `php/`: Production PHP portal files for Apache / Discovery cluster (`landscapingtool.discovery.cs.vt.edu`).
-- `screenshots/`: 8 high-resolution screenshots capturing GUI Insert/Delete operations and MariaDB query reflections.
-- `app/`: Zero-dependency Python 3 runner (`server.py`) and pre-populated database (`landscaping.db`) for immediate local testing.
-
----
-
-## 👥 Team & Credits
-
-- **Marcus Holloway** — Founder & Lead Landscape Architect
-- **Sarah Kensington** — Master Horticultural Specialist
-- **Verdant Landscapes Team** — Design & Development
-
----
-
-## 📄 License
-
-This project is open source and available under the [MIT License](LICENSE).
+| Member | Role | Main contributions |
+|--------|------|--------------------|
+| **Zachary Brosius** | Database architect | Drew the ER diagram & worked on relational schema diagram. Designed the schema, constraints and foreign-key actions. Moved the database to CS Launch, connected the app to it, and replaced the sample passwords with hashes. Reviewed code and fixed issues. |
+| **Saveer Pande** | Backend and database integration | Built the update and search features and the full project workflow screens, with dropdowns filled from parent tables. Delivered Phase 3 part 2. Prepared the final submission: 30-row sample data, views and triggers on the live database, the ADMIN table in the schema, and documentation. Reviewed code and fixed issues.|
+| **Benny He** | Application and UI lead | Drew the original ER diagram and relational schema. Built role-based login, sign up and change password, the customer and contractor portals, all role and managerial reports with charts, the task-oriented interface, admin management of contractors, plans, visits and photos, and the CS Launch launcher. Reviewed code and fixed issues. |
+| **Ahmad Abu Harb** | Integration and documentation | Built the front-end prototype website. Delivered Phase 2: database connection, insert and delete in the GUI, sample data, the PHP portal, screenshots and the Phase 2 report. Worked on Phase 1 and 3 reports. Reviewed code and fixed issues. |

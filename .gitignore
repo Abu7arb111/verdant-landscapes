@@ -4,3 +4,4 @@ Phase_2/app/landscaping.db
 Phase_3/php/config.local.php
 Phase_3/app/landscaping.db
 Phase_3/app/.venv/
+Phase_3/app/db_config.local.json
